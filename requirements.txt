@@ -1,0 +1,7 @@
+
+Flask
+pymongo
+flask_pymongo
+prometheus-flask-exporter
+python-json-logger
+requests

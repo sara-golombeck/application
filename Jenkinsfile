@@ -77,71 +77,42 @@ pipeline {
             }
         }
         
-        // stage('Integration & E2E Tests') {
-        //     when {
-        //         anyOf {
-        //             branch 'main'
-        //             branch 'develop'
-        //             branch 'feature/*'
-        //         }
-        //     }
-        //     steps {
-        //         script {
-        //             sh '''
-        //                 ls -la app/nginx/
-        //                 echo "Starting integration test environment..."
-        //                 docker compose up --build -d 
-        //                    chmod +x ./app/tests/e2e_tests/e2e_tests.sh
-        //                    ./app/tests/e2e_tests/e2e_tests.sh localhost || E2E_FAILED=true
-        //                    '''
-        //         }
-        //     }
-        //     post {
-        //         always {
-        //             echo "Starting cleanup..."
-
-        //             // sh 'docker compose down || true'
-        //         }
-        //         success {
-        //             echo "Integration/E2E tests passed successfully"
-        //         }
-        //         failure {
-        //             script {
-        //                 FAILURE_MSG = "Integration/E2E tests failed"
-        //                 echo "Integration/E2E tests failed"
-        //             }
-        //         }
-        //     }
-        // }
-
-
         stage('Integration & E2E Tests') {
-    steps {
-        script {
-            sh '''
-                echo "Starting integration test environment..."
-                docker compose up --build -d 
-                
-                # בדיקות דיאגנוסטיקה
-                echo "=== Docker containers ==="
-                docker ps
-                
-                echo "=== Network info ==="
-                docker network ls
-                
-                echo "=== Trying to connect ==="
-                sleep 10
-                curl -v http://localhost/health || true
-                curl -v http://localhost:80/health || true
-                
-                # נסה למצוא את IP של הנגינקס
-                NGINX_IP=$(docker inspect playlists_app_nginx | grep -i ipaddress | head -1 | cut -d'"' -f4)
-                echo "Nginx IP: $NGINX_IP"
-                curl -v http://$NGINX_IP/health || true
-            '''
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'develop'
+                    branch 'feature/*'
+                }
+            }
+            steps {
+                script {
+                    sh '''
+                        ls -la app/nginx/
+                        echo "Starting integration test environment..."
+                        docker compose up --build -d 
+                           chmod +x ./app/tests/e2e_tests/e2e_tests.sh
+                           ./app/tests/e2e_tests/e2e_tests.sh localhost || E2E_FAILED=true
+                           '''
+                }
+            }
+            post {
+                always {
+                    echo "Starting cleanup..."
+
+                    // sh 'docker compose down || true'
+                }
+                success {
+                    echo "Integration/E2E tests passed successfully"
+                }
+                failure {
+                    script {
+                        FAILURE_MSG = "Integration/E2E tests failed"
+                        echo "Integration/E2E tests failed"
+                    }
+                }
+            }
         }
-    }
-}
         
         stage('Set Version Tag') {
             when {
@@ -366,7 +337,7 @@ EOF
                 // Cleanup
                 sh '''
                     echo "Cleaning up..."
-                    docker compose down 2>/dev/null || true
+                    # docker compose down 2>/dev/null || true
                     docker images | grep ${IMAGE_NAME} | awk '{print $3}' | xargs -r docker rmi -f || true
                     docker system prune -f
                     rm -rf gitops-config

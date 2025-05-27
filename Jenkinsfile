@@ -401,8 +401,8 @@ EOF
             echo "Check the logs above for detailed error information"
         }
         
-        cleanup {
-            deleteDir()
-        }
+        // cleanup {
+        //     deleteDir()
+        // }
     }
 }

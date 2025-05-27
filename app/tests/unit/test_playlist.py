@@ -9,7 +9,7 @@ def client():
     app.config['TESTING'] = True
     return app.test_client()
 
-@patch('app.mongo')
+@patch('app.app.mongo')
 def test_add_playlist_success(mock_mongo, client):
     """Test - Successfully create a new playlist"""
     mock_mongo.db.playlists.find_one.return_value = None
@@ -31,7 +31,7 @@ def test_add_playlist_success(mock_mongo, client):
     assert data['name'] == 'test_playlist'
     assert 'message' in data
 
-@patch('app.mongo')
+@patch('app.app.mongo')
 def test_add_playlist_already_exists(mock_mongo, client):
     """Test - Playlist already exists"""
     mock_mongo.db.playlists.find_one.return_value = {"name": "test_playlist"}
@@ -48,7 +48,7 @@ def test_add_playlist_already_exists(mock_mongo, client):
     data = json.loads(response.data)
     assert 'error' in data
 
-@patch('app.mongo')
+@patch('app.app.mongo')
 def test_get_playlist_success(mock_mongo, client):
     """Test - Retrieve existing playlist"""
     mock_playlist = {
@@ -63,7 +63,7 @@ def test_get_playlist_success(mock_mongo, client):
     data = json.loads(response.data)
     assert data['name'] == 'test_playlist'
 
-@patch('app.mongo')
+@patch('app.app.mongo')
 def test_get_playlist_not_found(mock_mongo, client):
     """Test - Playlist not found"""
     mock_mongo.db.playlists.find_one.return_value = None
@@ -74,7 +74,7 @@ def test_get_playlist_not_found(mock_mongo, client):
     data = json.loads(response.data)
     assert 'error' in data
 
-@patch('app.mongo')
+@patch('app.app.mongo')
 def test_delete_playlist_success(mock_mongo, client):
     """Test - Successfully delete playlist"""
     mock_mongo.db.playlists.delete_one.return_value.deleted_count = 1
@@ -95,7 +95,7 @@ def test_invalid_json(client):
     
     assert response.status_code == 400
 
-@patch('app.mongo')
+@patch('app.app.mongo')
 def test_health_check_healthy(mock_mongo, client):
     """Test - Health check returns healthy status"""
     mock_mongo.db.command.return_value = True
@@ -112,7 +112,7 @@ def test_health_check_healthy(mock_mongo, client):
     ("another-valid-name", 201),
     ("playlist-with-numbers-123", 201),
 ])
-@patch('app.mongo')
+@patch('app.app.mongo')
 def test_playlist_creation_with_various_names(mock_mongo, client, playlist_name, expected_status):
     """Test - Playlist creation with various valid names"""
     mock_mongo.db.playlists.find_one.return_value = None
@@ -136,7 +136,7 @@ def test_playlist_creation_with_various_names(mock_mongo, client, playlist_name,
     (Exception("Database connection failed"), 500),
     (Exception("Timeout error"), 500),
 ])
-@patch('app.mongo')
+@patch('app.app.mongo')
 def test_database_error_handling(mock_mongo, client, mock_error, expected_status):
     """Test - Database error handling"""
     mock_mongo.db.playlists.find_one.side_effect = mock_error
@@ -177,7 +177,7 @@ def test_database_error_handling(mock_mongo, client, mock_error, expected_status
 #         self.app.config['TESTING'] = True
 #         self.client = self.app.test_client()
         
-#     @patch('app.mongo')
+#     @patch('app.app.mongo')
 #     def test_add_playlist_success(self, mock_mongo):
 #         """Test - Successfully create a new playlist"""
 #         mock_mongo.db.playlists.find_one.return_value = None 
@@ -199,7 +199,7 @@ def test_database_error_handling(mock_mongo, client, mock_error, expected_status
 #         self.assertEqual(data['name'], 'test_playlist')
 #         self.assertIn('message', data)
 
-#     @patch('app.mongo')
+#     @patch('app.app.mongo')
 #     def test_add_playlist_already_exists(self, mock_mongo):
 #         """Test - Playlist already exists"""
 #         mock_mongo.db.playlists.find_one.return_value = {"name": "test_playlist"}
@@ -216,7 +216,7 @@ def test_database_error_handling(mock_mongo, client, mock_error, expected_status
 #         data = json.loads(response.data)
 #         self.assertIn('error', data)
 
-#     @patch('app.mongo')
+#     @patch('app.app.mongo')
 #     def test_get_playlist_success(self, mock_mongo):
 #         """Test - Retrieve existing playlist"""
 #         mock_playlist = {
@@ -231,7 +231,7 @@ def test_database_error_handling(mock_mongo, client, mock_error, expected_status
 #         data = json.loads(response.data)
 #         self.assertEqual(data['name'], 'test_playlist')
 
-#     @patch('app.mongo')
+#     @patch('app.app.mongo')
 #     def test_get_playlist_not_found(self, mock_mongo):
 #         """Test - Playlist not found"""
 #         mock_mongo.db.playlists.find_one.return_value = None
@@ -242,7 +242,7 @@ def test_database_error_handling(mock_mongo, client, mock_error, expected_status
 #         data = json.loads(response.data)
 #         self.assertIn('error', data)
 
-#     @patch('app.mongo')
+#     @patch('app.app.mongo')
 #     def test_delete_playlist_success(self, mock_mongo):
 #         """Test - Successfully delete playlist"""
 #         mock_mongo.db.playlists.delete_one.return_value.deleted_count = 1
@@ -263,7 +263,7 @@ def test_database_error_handling(mock_mongo, client, mock_error, expected_status
         
 #         self.assertEqual(response.status_code, 400)
 
-#     @patch('app.mongo')
+#     @patch('app.app.mongo')
 #     def test_health_check_healthy(self, mock_mongo):
 #         """Test - Health check is healthy"""
 #         mock_mongo.db.command.return_value = True

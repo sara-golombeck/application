@@ -137,7 +137,7 @@ pipeline {
             }
             post {
                 always {
-                    sh 'docker compose down || true'
+                    // sh 'docker compose down || true'
                 }
                 success {
                     echo "Integration/E2E tests passed successfully"
@@ -374,7 +374,7 @@ EOF
                 // Cleanup
                 sh '''
                     echo "Cleaning up..."
-                    docker compose down 2>/dev/null || true
+                    # // docker compose down 2>/dev/null || true
                     docker images | grep ${IMAGE_NAME} | awk '{print $3}' | xargs -r docker rmi -f || true
                     docker system prune -f
                     rm -rf gitops-config

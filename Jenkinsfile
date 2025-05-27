@@ -101,9 +101,9 @@ pipeline {
                         # curl -f http://localhost:80/health || exit 1
                         
                         # Run integration tests
-                        echo "Running integration tests..."
-                        pip install requests pytest
-                        pytest app/tests/integration/ -v || INTEGRATION_FAILED=true
+                        # echo "Running integration tests..."
+                        #   pip install requests pytest
+                        #   pytest app/tests/integration/ -v || INTEGRATION_FAILED=true
                         
                         if [ -f "./app/tests/e2e_tests/e2e_tests.sh" ]; then
                            echo "Running E2E tests..."

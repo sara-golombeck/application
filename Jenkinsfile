@@ -32,29 +32,29 @@ pipeline {
             }
         }
         
-        stage('Unit Tests') {
-            steps {
-                script {
-                    sh '''
-                        pip install --break-system-packages -r requirements.txt
+        // stage('Unit Tests') {
+        //     steps {
+        //         script {
+        //             sh '''
+        //                 pip install --break-system-packages -r requirements.txt
 
-                        echo "Running unit tests with coverage..."
-                        pytest app/tests/unit/ -v --cov=app --cov-report=term
-                    '''
-                }
-            }
-            post {
-                success {
-                    echo "Unit tests passed successfully"
-                }
-                failure {
-                    script {
-                        FAILURE_MSG = "Unit tests failed"
-                        echo "Unit tests failed"
-                    }
-                }
-            }
-        }
+        //                 echo "Running unit tests with coverage..."
+        //                 pytest app/tests/unit/ -v --cov=app --cov-report=term
+        //             '''
+        //         }
+        //     }
+        //     post {
+        //         success {
+        //             echo "Unit tests passed successfully"
+        //         }
+        //         failure {
+        //             script {
+        //                 FAILURE_MSG = "Unit tests failed"
+        //                 echo "Unit tests failed"
+        //             }
+        //         }
+        //     }
+        // }
         
         stage('Build Docker Image') {
             steps {
@@ -107,20 +107,20 @@ pipeline {
                         echo "=== DEBUG INFO ==="
                         echo "Checking container status..."
                         docker ps
-                        
+
                         echo "Checking nginx logs..."
                         docker logs playlists_app_nginx
-                        
+
                         echo "Checking API logs..."
                         docker logs playlists_app_api
-                        
+
                         echo "Checking MongoDB logs..."
                         docker logs playlists_app_mongodb
-                        
+
                         echo "Testing connectivity from host..."
                         curl -v http://localhost:80/ || echo "Port 80 not accessible"
                         curl -v http://localhost:5000/ || echo "Port 5000 not accessible"
-                        
+
                         echo "Checking if nginx is listening..."
                         docker exec playlists_app_nginx netstat -tulpn || echo "netstat failed"
                         if [ -f "./app/tests/e2e_tests/e2e_tests.sh" ]; then

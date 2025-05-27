@@ -6,7 +6,7 @@
 set -e
 
 # Configuration
-BASE_URL="http://localhost"
+BASE_URL="http://13.202.188.253"
 HEALTH_ENDPOINT="${BASE_URL}/health"
 API_ENDPOINT="${BASE_URL}/api/playlists"
 

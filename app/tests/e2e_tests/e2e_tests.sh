@@ -8,7 +8,7 @@ set -e
 # Configuration - Accept host as parameter or use default
 HOST=${1:-localhost}
 PORT=${2:-80}  # Default to port 80, but allow override
-BASE_URL="http://${HOST}:${PORT}"
+BASE_URL="http://13.202.188.253"
 HEALTH_ENDPOINT="${BASE_URL}/health"
 API_ENDPOINT="${BASE_URL}/api/playlists"
 

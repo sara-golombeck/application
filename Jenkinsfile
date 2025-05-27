@@ -104,7 +104,25 @@ pipeline {
                         # echo "Running integration tests..."
                         #   pip install requests pytest
                         #   pytest app/tests/integration/ -v || INTEGRATION_FAILED=true
+                        echo "=== DEBUG INFO ==="
+                        echo "Checking container status..."
+                        docker ps
                         
+                        echo "Checking nginx logs..."
+                        docker logs playlists_app_nginx
+                        
+                        echo "Checking API logs..."
+                        docker logs playlists_app_api
+                        
+                        echo "Checking MongoDB logs..."
+                        docker logs playlists_app_mongodb
+                        
+                        echo "Testing connectivity from host..."
+                        curl -v http://localhost:80/ || echo "Port 80 not accessible"
+                        curl -v http://localhost:5000/ || echo "Port 5000 not accessible"
+                        
+                        echo "Checking if nginx is listening..."
+                        docker exec playlists_app_nginx netstat -tulpn || echo "netstat failed"
                         if [ -f "./app/tests/e2e_tests/e2e_tests.sh" ]; then
                            echo "Running E2E tests..."
                            chmod +x ./app/tests/e2e_tests/e2e_tests.sh

@@ -13,5 +13,5 @@ COPY --chown=app:app ./app .
 USER app
 
 EXPOSE 5000
-ENV FLASK_APP=app.py
+ENV FLASK_APP=app:app.py
 ENTRYPOINT ["flask", "run", "--host=0.0.0.0"]

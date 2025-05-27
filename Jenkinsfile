@@ -88,6 +88,7 @@ pipeline {
             steps {
                 script {
                     sh '''
+                        ls -la app/nginx/
                         echo "Starting integration test environment..."
                         docker compose up --build -d
                         

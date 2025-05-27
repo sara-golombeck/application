@@ -8,7 +8,7 @@ set -e
 # Configuration
 BASE_URL="http://localhost"
 HEALTH_ENDPOINT="${BASE_URL}/health"
-API_ENDPOINT="${BASE_URL}/playlists"
+API_ENDPOINT="${BASE_URL}/api/playlists"
 
 # Test results
 TOTAL_TESTS=0
@@ -58,7 +58,7 @@ wait_for_service() {
 test_health_check() {
     log_test "Health Check"
     
-    local response=$(curl -s -w "%{http_code}" "$HEALTH_ENDPOINT" || echo "000")
+    local response=$(curl -s -w "\n%{http_code}" "$HEALTH_ENDPOINT" || echo -e "\n000")
     local status_code=$(echo "$response" | tail -n1)
     
     if [ "$status_code" = "200" ]; then
@@ -73,7 +73,7 @@ test_health_check() {
 test_landing_page() {
     log_test "API Landing Page"
     
-    local response=$(curl -s -w "%{http_code}" "$BASE_URL/" || echo "000")
+    local response=$(curl -s -w "\n%{http_code}" "$BASE_URL/" || echo -e "\n000")
     local status_code=$(echo "$response" | tail -n1)
     
     if [ "$status_code" = "200" ]; then
@@ -91,10 +91,10 @@ test_create_playlist() {
     local playlist_name="e2e-test-$(date +%s)"
     local payload='{"songs": ["Test Song 1", "Test Song 2"], "genre": "test"}'
     
-    local response=$(curl -s -w "%{http_code}" \
+    local response=$(curl -s -w "\n%{http_code}" \
         -H "Content-Type: application/json" \
         -d "$payload" \
-        -X POST "$API_ENDPOINT/$playlist_name" || echo "000")
+        -X POST "$API_ENDPOINT/$playlist_name" || echo -e "\n000")
     
     local status_code=$(echo "$response" | tail -n1)
     
@@ -118,7 +118,7 @@ test_get_playlist() {
     fi
     
     local playlist_name=$(cat /tmp/e2e_playlist_name)
-    local response=$(curl -s -w "%{http_code}" "$API_ENDPOINT/$playlist_name" || echo "000")
+    local response=$(curl -s -w "\n%{http_code}" "$API_ENDPOINT/$playlist_name" || echo -e "\n000")
     local status_code=$(echo "$response" | tail -n1)
     
     if [ "$status_code" = "200" ]; then
@@ -147,10 +147,10 @@ test_update_playlist() {
     local playlist_name=$(cat /tmp/e2e_playlist_name)
     local payload='{"songs": ["Updated Song"], "genre": "updated"}'
     
-    local response=$(curl -s -w "%{http_code}" \
+    local response=$(curl -s -w "\n%{http_code}" \
         -H "Content-Type: application/json" \
         -d "$payload" \
-        -X PUT "$API_ENDPOINT/$playlist_name" || echo "000")
+        -X PUT "$API_ENDPOINT/$playlist_name" || echo -e "\n000")
     
     local status_code=$(echo "$response" | tail -n1)
     
@@ -166,7 +166,7 @@ test_update_playlist() {
 test_list_playlists() {
     log_test "List All Playlists"
     
-    local response=$(curl -s -w "%{http_code}" "$API_ENDPOINT" || echo "000")
+    local response=$(curl -s -w "\n%{http_code}" "$API_ENDPOINT" || echo -e "\n000")
     local status_code=$(echo "$response" | tail -n1)
     
     if [ "$status_code" = "200" ]; then
@@ -193,8 +193,8 @@ test_delete_playlist() {
     fi
     
     local playlist_name=$(cat /tmp/e2e_playlist_name)
-    local response=$(curl -s -w "%{http_code}" \
-        -X DELETE "$API_ENDPOINT/$playlist_name" || echo "000")
+    local response=$(curl -s -w "\n%{http_code}" \
+        -X DELETE "$API_ENDPOINT/$playlist_name" || echo -e "\n000")
     
     local status_code=$(echo "$response" | tail -n1)
     
@@ -216,7 +216,7 @@ test_verify_deletion() {
     fi
     
     local playlist_name=$(cat /tmp/e2e_playlist_name)
-    local response=$(curl -s -w "%{http_code}" "$API_ENDPOINT/$playlist_name" || echo "000")
+    local response=$(curl -s -w "\n%{http_code}" "$API_ENDPOINT/$playlist_name" || echo -e "\n000")
     local status_code=$(echo "$response" | tail -n1)
     
     if [ "$status_code" = "404" ]; then

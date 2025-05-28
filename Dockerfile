@@ -45,9 +45,9 @@ ENV FLASK_RUN_HOST=0.0.0.0
 FROM base AS test
 ARG ENVIRONMENT=test
 COPY --from=base /app /app
-COPY ./tests ./tests
+# COPY ./tests ./tests
 
-CMD ["pytest", "tests"]
+CMD ["pytest", "app/tests"]
 
 # ---------- Stage 3: Production ----------
 FROM base AS production

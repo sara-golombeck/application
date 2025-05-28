@@ -19,6 +19,8 @@ FROM python:3.13-slim AS base
 RUN useradd --create-home --shell /bin/bash --uid 10000 app
 
 WORKDIR /app
+ENV PYTHONPATH=/app
+
 
 # Set ARG to define environment (prod/test)
 ARG ENVIRONMENT=production

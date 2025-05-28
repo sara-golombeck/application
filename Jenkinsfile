@@ -114,7 +114,7 @@ pipeline {
         //     }
         // }
         
-stage('Set Image Tag') {
+stage('Set And Push Image Tag') {
     when { branch 'main' }
     steps {
         script {
@@ -132,78 +132,37 @@ stage('Set Image Tag') {
         }
     }
  }
+
         
-//         stage('Push Git Tag') {
-//             when {
-//                 branch 'main'
-//             }
-//             steps {
-//                 sshagent(['ssh-github']) {
-//                     sh """
-//                         git config user.email "jenkins@portfolio.com"
-//                         git config user.name "Jenkins CI"
-//                         git tag ${MAIN_TAG}
-//                         git push origin ${MAIN_TAG}
-//                     """
-//                 }
-//             }
-//             post {
-//                 success {
-//                     echo "Git tag pushed successfully"
-//                 }
-//                 failure {
-//                     script {
-//                         FAILURE_MSG = "Git tag push failed"
-//                         echo "Git tag push failed"
-//                     }
-//                 }
-//             }
-//         }
-        
-        stage('Push to ECR') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                }
-            }
-            steps {
-                script {
-                    withAWS(credentials: 'aws-credentials', region: "${AWS_DEFAULT_REGION}") {
-                        def imageTag = env.BRANCH_NAME == 'main' ? MAIN_TAG : "dev-${BUILD_NUMBER}"
-                        
-                        sh """
-                            echo "Logging into ECR..."
-                            aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | \
-                                docker login --username AWS --password-stdin ${ECR_URL}
-                            
-                            echo "Tagging and pushing image: ${ECR_REPO}:${imageTag}"
-                            docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${ECR_REPO}:${imageTag}
-                            docker push ${ECR_REPO}:${imageTag}
-                            
-                            # Also push latest tag for main branch
-                            if [ "${env.BRANCH_NAME}" = "main" ]; then
-                                docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${ECR_REPO}:latest
-                                docker push ${ECR_REPO}:latest
-                            fi
-                            
-                            echo "Successfully pushed: ${ECR_REPO}:${imageTag}"
-                        """
-                    }
-                }
-            }
-            post {
-                success {
-                    echo "Image pushed to ECR successfully"
-                }
-                failure {
-                    script {
-                        FAILURE_MSG = "ECR push failed"
-                        echo "ECR push failed"
-                    }
-                }
-            }
+stage('Push to ECR') {
+    when {
+        anyOf {
+            branch 'main'
+            branch 'develop'
         }
+    }
+    steps {
+        script {
+            def imageTag = env.BRANCH_NAME == 'main' ? MAIN_TAG : "dev-${BUILD_NUMBER}"
+            
+            sh """
+                # Login to ECR
+                aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | \
+                    docker login --username AWS --password-stdin ${ECR_URL}
+                
+                # Tag and push
+                docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${ECR_REPO}:${imageTag}
+                docker push ${ECR_REPO}:${imageTag}
+                
+                # Push latest for main
+                if [ "${BRANCH_NAME}" = "main" ]; then
+                    docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${ECR_REPO}:latest
+                    docker push ${ECR_REPO}:latest
+                fi
+            """
+        }
+    }
+}
         
         stage('GitOps Deployment') {
             when {

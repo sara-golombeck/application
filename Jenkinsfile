@@ -55,6 +55,16 @@ pipeline {
         //         }
         //     }
         // }
+        stage('Build Test Image') {
+    steps {
+        script {
+            sh 'docker build --target test -t myapp-test .'
+            sh 'docker run --rm myapp-test'
+
+        }
+    }
+}
+
         
         stage('Build Docker Image') {
             steps {
@@ -138,7 +148,6 @@ stage('Push to ECR') {
     when {
         anyOf {
             branch 'main'
-            branch 'develop'
         }
     }
     steps {
@@ -146,7 +155,6 @@ stage('Push to ECR') {
             def imageTag = env.BRANCH_NAME == 'main' ? MAIN_TAG : "dev-${BUILD_NUMBER}"
             
             sh """
-                # Login to ECR
                 aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | \
                     docker login --username AWS --password-stdin ${ECR_URL}
                 
@@ -155,10 +163,8 @@ stage('Push to ECR') {
                 docker push ${ECR_REPO}:${imageTag}
                 
                 # Push latest for main
-                if [ "${BRANCH_NAME}" = "main" ]; then
                     docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${ECR_REPO}:latest
                     docker push ${ECR_REPO}:latest
-                fi
             """
         }
     }

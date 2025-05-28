@@ -122,42 +122,43 @@ stage('Set Image Tag') {
             def v = lastTag.tokenize('.')
             MAIN_TAG = "${v[0]}.${v[1]}.${v[2].toInteger() + 1}"
             
+        sshagent (credentials: ['github'])
+        {
             sh """
-                git config user.name "Jenkins CI"
-                git config user.email "jenkins@ci.com"
-                git tag -a ${MAIN_TAG} -m "Release ${MAIN_TAG}"
-                git push origin ${MAIN_TAG}
+                    git tag -a ${MAIN_TAG} -m "Release ${MAIN_TAG}"
+                    git push origin ${MAIN_TAG}
             """
         }
-    }
-}
-        
-        stage('Push Git Tag') {
-            when {
-                branch 'main'
-            }
-            steps {
-                sshagent(['ssh-github']) {
-                    sh """
-                        git config user.email "jenkins@portfolio.com"
-                        git config user.name "Jenkins CI"
-                        git tag ${MAIN_TAG}
-                        git push origin ${MAIN_TAG}
-                    """
-                }
-            }
-            post {
-                success {
-                    echo "Git tag pushed successfully"
-                }
-                failure {
-                    script {
-                        FAILURE_MSG = "Git tag push failed"
-                        echo "Git tag push failed"
-                    }
-                }
-            }
         }
+    }
+ }
+        
+//         stage('Push Git Tag') {
+//             when {
+//                 branch 'main'
+//             }
+//             steps {
+//                 sshagent(['ssh-github']) {
+//                     sh """
+//                         git config user.email "jenkins@portfolio.com"
+//                         git config user.name "Jenkins CI"
+//                         git tag ${MAIN_TAG}
+//                         git push origin ${MAIN_TAG}
+//                     """
+//                 }
+//             }
+//             post {
+//                 success {
+//                     echo "Git tag pushed successfully"
+//                 }
+//                 failure {
+//                     script {
+//                         FAILURE_MSG = "Git tag push failed"
+//                         echo "Git tag push failed"
+//                     }
+//                 }
+//             }
+//         }
         
         stage('Push to ECR') {
             when {

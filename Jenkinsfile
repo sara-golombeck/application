@@ -77,7 +77,7 @@ pipeline {
             }
         }
         
-        stage('Integration & E2E Tests') {
+        stage('E2E Tests') {
             when {
                 anyOf {
                     branch 'main'
@@ -100,7 +100,7 @@ pipeline {
                 always {
                     echo "Starting cleanup..."
 
-                    // sh 'docker compose down || true'
+                    sh 'docker compose down || true'
                 }
                 success {
                     echo "Integration/E2E tests passed successfully"
@@ -114,48 +114,23 @@ pipeline {
             }
         }
         
-        stage('Set Version Tag') {
-            when {
-                branch 'main'
-            }
-            steps {
-                script {
-                    sshagent(['ssh-github']) {
-                        sh "git fetch --tags"
-                    }
-                    
-                    def tag = ''
-                    def patch = 0
-                    try {
-                        tag = sh(script: "git describe --tags --abbrev=0", returnStdout: true).trim()
-                        echo "Latest tag found: ${tag}"
-                        def match = (tag =~ /(\d+)$/)
-                        if (match) {
-                            patch = (match[0][0] as int) + 1
-                            MAIN_TAG = tag.replaceAll(/(\d+)$/, "${patch}")
-                        } else {
-                            MAIN_TAG = "${tag}.1"
-                        }
-                    } catch (Exception e) {
-                        echo "No tags found, starting with v1.0.1"
-                        MAIN_TAG = "v1.0.1"
-                    }
-                    
-                    echo "New version tag: ${MAIN_TAG}"
-                }
-            }
-            post {
-                success {
-                    echo "Version tag set successfully: ${MAIN_TAG}"
-                }
-                failure {
-                    script {
-                        FAILURE_MSG = "Version tagging failed"
-                        echo "Version tagging failed"
-                    }
-                }
-            }
+stage('Set Image Tag') {
+    when { branch 'main' }
+    steps {
+        script {
+            def lastTag = sh(script: "git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0'", returnStdout: true).trim()
+            def v = lastTag.tokenize('.')
+            MAIN_TAG = "${v[0]}.${v[1]}.${v[2].toInteger() + 1}"
+            
+            sh """
+                git config user.name "Jenkins CI"
+                git config user.email "jenkins@ci.com"
+                git tag -a ${MAIN_TAG} -m "Release ${MAIN_TAG}"
+                git push origin ${MAIN_TAG}
+            """
         }
+    }
+}
         
         stage('Push Git Tag') {
             when {

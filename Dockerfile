@@ -47,7 +47,7 @@ ARG ENVIRONMENT=test
 COPY --from=base /app /app
 # COPY ./tests ./tests
 
-CMD ["pytest", "app/tests"]
+CMD ["pytest", "tests"]
 
 # ---------- Stage 3: Production ----------
 FROM base AS production

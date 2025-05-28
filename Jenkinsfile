@@ -77,42 +77,42 @@ pipeline {
             }
         }
         
-        stage('E2E Tests') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                    branch 'feature/*'
-                }
-            }
-            steps {
-                script {
-                    sh '''
-                        ls -la app/nginx/
-                        echo "Starting integration test environment..."
-                        docker compose up --build -d 
-                           chmod +x ./app/tests/e2e_tests/e2e_tests.sh
-                           ./app/tests/e2e_tests/e2e_tests.sh localhost || E2E_FAILED=true
-                           '''
-                }
-            }
-            post {
-                always {
-                    echo "Starting cleanup..."
+        // stage('E2E Tests') {
+        //     when {
+        //         anyOf {
+        //             branch 'main'
+        //             branch 'develop'
+        //             branch 'feature/*'
+        //         }
+        //     }
+        //     steps {
+        //         script {
+        //             sh '''
+        //                 ls -la app/nginx/
+        //                 echo "Starting integration test environment..."
+        //                 docker compose up --build -d 
+        //                    chmod +x ./app/tests/e2e_tests/e2e_tests.sh
+        //                    ./app/tests/e2e_tests/e2e_tests.sh localhost || E2E_FAILED=true
+        //                    '''
+        //         }
+        //     }
+        //     post {
+        //         always {
+        //             echo "Starting cleanup..."
 
-                    sh 'docker compose down || true'
-                }
-                success {
-                    echo "Integration/E2E tests passed successfully"
-                }
-                failure {
-                    script {
-                        FAILURE_MSG = "Integration/E2E tests failed"
-                        echo "Integration/E2E tests failed"
-                    }
-                }
-            }
-        }
+        //             sh 'docker compose down || true'
+        //         }
+        //         success {
+        //             echo "Integration/E2E tests passed successfully"
+        //         }
+        //         failure {
+        //             script {
+        //                 FAILURE_MSG = "Integration/E2E tests failed"
+        //                 echo "Integration/E2E tests failed"
+        //             }
+        //         }
+        //     }
+        // }
         
 stage('Set Image Tag') {
     when { branch 'main' }

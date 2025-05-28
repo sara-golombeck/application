@@ -58,7 +58,9 @@ pipeline {
         stage('Build Test Image') {
     steps {
         script {
-            sh 'docker build --target test -t myapp-test .'
+            sh 'docker build --target test --build-arg ENVIRONMENT=test -t myapp-test .'
+
+            // sh 'docker build --target test -t myapp-test .'
             sh 'docker run --rm myapp-test'
 
         }

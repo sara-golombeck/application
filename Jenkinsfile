@@ -5,7 +5,8 @@ pipeline {
         // Application Configuration
         IMAGE_NAME = 'sara/playlists-app'
         ECR_URL = '793786247026.dkr.ecr.ap-south-1.amazonaws.com'
-        ECR_REPO = "${ECR_URL}/${IMAGE_NAME}"
+        // ECR_REPO = "${ECR_URL}/${IMAGE_NAME}"
+        ECR_REPO = "793786247026.dkr.ecr.ap-south-1.amazonaws.com/sara/playlists-app"
         AWS_REGION = 'ap-south-1'  
         // GitOps Configuration
         GITOPS_REPO = 'git@github.com:yourusername/gitops-config.git'

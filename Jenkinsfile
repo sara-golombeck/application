@@ -11,7 +11,6 @@ pipeline {
         GITOPS_REPO = 'git@github.com:yourusername/gitops-config.git'
         GITOPS_BRANCH = 'main'
         HELM_VALUES_PATH = 'portfolio-app/values.yaml'
-        
         // Dynamic Variables
         MAIN_TAG = ''
         FAILURE_MSG = ''

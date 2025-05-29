@@ -13,7 +13,7 @@ pipeline {
         GITOPS_BRANCH = 'main'
         HELM_VALUES_PATH = 'portfolio-app/values.yaml'
         // Dynamic Variables
-        MAIN_TAG = ''
+        MAIN_TAG = 'latest'
         FAILURE_MSG = ''
     }
     

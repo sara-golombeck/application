@@ -4,9 +4,9 @@ pipeline {
     environment {
         // Application Configuration
         IMAGE_NAME = 'sara/playlists-app'
-        ECR_URL = '980921758549.dkr.ecr.ap-south-1.amazonaws.com'
+        ECR_URL = '793786247026.dkr.ecr.ap-south-1.amazonaws.com'
         ECR_REPO = "${ECR_URL}/${IMAGE_NAME}"
-        AWS_DEFAULT_REGION = 'ap-south-1'  
+        AWS_REGION = 'ap-south-1'  
         // GitOps Configuration
         GITOPS_REPO = 'git@github.com:yourusername/gitops-config.git'
         GITOPS_BRANCH = 'main'
@@ -32,40 +32,15 @@ pipeline {
             }
         }
         
-        // stage('Unit Tests') {
-        //     steps {
-        //         script {
-        //             sh '''
-        //                 pip install --break-system-packages -r requirements.txt
+// stage('Unit Tests') {
+//     steps {
+//         script {
+//             sh 'docker build --target test --build-arg ENVIRONMENT=test -t myapp-test .'
+//             sh 'docker run --rm myapp-test'
 
-        //                 echo "Running unit tests with coverage..."
-        //                 pytest app/tests/unit/ -v --cov=app --cov-report=term
-        //             '''
-        //         }
-        //     }
-        //     post {
-        //         success {
-        //             echo "Unit tests passed successfully"
-        //         }
-        //         failure {
-        //             script {
-        //                 FAILURE_MSG = "Unit tests failed"
-        //                 echo "Unit tests failed"
-        //             }
-        //         }
-        //     }
-        // }
-        stage('Build Test Image') {
-    steps {
-        script {
-            sh 'docker build --target test --build-arg ENVIRONMENT=test -t myapp-test .'
-
-            // sh 'docker build --target test -t myapp-test .'
-            sh 'docker run --rm myapp-test'
-
-        }
-    }
-}
+//         }
+//     }
+// }
 
         
         stage('Build Docker Image') {
@@ -157,7 +132,7 @@ stage('Push to ECR') {
             def imageTag = env.BRANCH_NAME == 'main' ? MAIN_TAG : "dev-${BUILD_NUMBER}"
             
             sh """
-                aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | \
+                aws ecr get-login-password --region ${AWS_REGION} | \
                     docker login --username AWS --password-stdin ${ECR_URL}
                 
                 # Tag and push

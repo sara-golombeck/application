@@ -101,6 +101,27 @@ pipeline {
         //     }
         // }
         
+// stage('Set And Push Image Tag') {
+//     when { branch 'main' }
+//     steps {
+//         script {
+//             def lastTag = sh(script: "git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0'", returnStdout: true).trim()
+//             def v = lastTag.tokenize('.')
+//             MAIN_TAG = "${v[0]}.${v[1]}.${v[2].toInteger() + 1}"
+            
+//         sshagent (credentials: ['github'])
+//         {
+//             sh """
+//                     git tag -a ${MAIN_TAG} -m "Release ${MAIN_TAG}"
+//                     git push origin ${MAIN_TAG}
+//             """
+//         }
+//         }
+//     }
+//  }
+
+
+
 stage('Set And Push Image Tag') {
     when { branch 'main' }
     steps {
@@ -109,16 +130,25 @@ stage('Set And Push Image Tag') {
             def v = lastTag.tokenize('.')
             MAIN_TAG = "${v[0]}.${v[1]}.${v[2].toInteger() + 1}"
             
-        sshagent (credentials: ['github'])
-        {
-            sh """
-                    git tag -a ${MAIN_TAG} -m "Release ${MAIN_TAG}"
-                    git push origin ${MAIN_TAG}
-            """
-        }
+            sshagent (credentials: ['github']) {
+                // withCredentials([
+                //     string(credentialsId: 'git-username', variable: 'GIT_USERNAME'),
+                //     string(credentialsId: 'git-email', variable: 'GIT_EMAIL')
+                // ]) {
+                    sh """
+                        # Configure git identity for tagging
+                        git config user.email "${GIT_EMAIL}"
+                        git config user.name "${GIT_USERNAME}"
+                        
+                        # Create and push tag
+                        git tag -a ${MAIN_TAG} -m "Release ${MAIN_TAG}"
+                        git push origin ${MAIN_TAG}
+                    """
+                }
+            }
         }
     }
- }
+// }
 
 stage('Push to ECR') {
     when {

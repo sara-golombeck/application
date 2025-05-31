@@ -9,11 +9,11 @@ pipeline {
         ECR_REPO = "793786247026.dkr.ecr.ap-south-1.amazonaws.com/sara/playlists-app"
         AWS_REGION = 'ap-south-1'  
         // GitOps Configuration
-        GITOPS_REPO = 'git@github.com:yourusername/gitops-config.git'
+        GITOPS_REPO = 'git@github.com:sara-golombeck/gitops.git'
         GITOPS_BRANCH = 'main'
-        HELM_VALUES_PATH = 'portfolio-app/values.yaml'
+        HELM_VALUES_PATH = 'charts/playlist-app/values.yaml'
         // Dynamic Variables
-        MAIN_TAG = 'latest'
+        MAIN_TAG = ''
         FAILURE_MSG = ''
     }
     
@@ -101,24 +101,24 @@ pipeline {
         //     }
         // }
         
-// stage('Set And Push Image Tag') {
-//     when { branch 'main' }
-//     steps {
-//         script {
-//             def lastTag = sh(script: "git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0'", returnStdout: true).trim()
-//             def v = lastTag.tokenize('.')
-//             MAIN_TAG = "${v[0]}.${v[1]}.${v[2].toInteger() + 1}"
+stage('Set And Push Image Tag') {
+    when { branch 'main' }
+    steps {
+        script {
+            def lastTag = sh(script: "git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0'", returnStdout: true).trim()
+            def v = lastTag.tokenize('.')
+            MAIN_TAG = "${v[0]}.${v[1]}.${v[2].toInteger() + 1}"
             
-//         sshagent (credentials: ['github'])
-//         {
-//             sh """
-//                     git tag -a ${MAIN_TAG} -m "Release ${MAIN_TAG}"
-//                     git push origin ${MAIN_TAG}
-//             """
-//         }
-//         }
-//     }
-//  }
+        sshagent (credentials: ['github'])
+        {
+            sh """
+                    git tag -a ${MAIN_TAG} -m "Release ${MAIN_TAG}"
+                    git push origin ${MAIN_TAG}
+            """
+        }
+        }
+    }
+ }
 
         
 stage('Push to ECR') {
@@ -129,15 +129,14 @@ stage('Push to ECR') {
     }
     steps {
         script {
-            def imageTag = env.BRANCH_NAME == 'main' ? MAIN_TAG : "dev-${BUILD_NUMBER}"
             
             sh """
                 aws ecr get-login-password --region ${AWS_REGION} | \
                     docker login --username AWS --password-stdin ${ECR_URL}
                 
                 # Tag and push
-                docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${ECR_REPO}:${imageTag}
-                docker push ${ECR_REPO}:${imageTag}
+                    docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${ECR_REPO}:${MAIN_TAG}
+                    docker push ${ECR_REPO}:${MAIN_TAG}
                 
                 # Push latest for main
                     docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${ECR_REPO}:latest
@@ -153,12 +152,10 @@ stage('Push to ECR') {
             }
             steps {
                 script {
-                    sshagent(['ssh-github']) {
+                    sshagent(['github']) {
                         sh '''
                             # Clean up any existing gitops directory
                             rm -rf gitops-config
-                            
-                            # Clone GitOps repository
                             echo "Cloning GitOps repository..."
                             git clone ${GITOPS_REPO} gitops-config
                         '''
@@ -172,27 +169,17 @@ stage('Push to ECR') {
                                     # Configure git
                                     git config user.email "${GIT_EMAIL}"
                                     git config user.name "${GIT_USERNAME}"
-                                    
-                                    # Update Helm values with new image tag
-                                    echo "Updating image tag in ${HELM_VALUES_PATH}..."
+
+                                    # Update image tag and show changes
                                     sed -i 's|tag:.*|tag: "${MAIN_TAG}"|g' ${HELM_VALUES_PATH}
-                                    sed -i 's|app_image_version:.*|app_image_version: "${MAIN_TAG}"|g' ${HELM_VALUES_PATH}
-                                    
-                                    # Show changes
-                                    echo "Changes made:"
                                     git diff
-                                    
+
                                     # Commit and push
                                     git add ${HELM_VALUES_PATH}
-                                    git commit -m "Deploy ${IMAGE_NAME} version ${MAIN_TAG}
-                                    
-                                    - Updated image tag to ${MAIN_TAG}
-                                    - Build: ${BUILD_NUMBER}
-                                    - Commit: ${GIT_COMMIT?.take(8)}"
-                                    
+                                    git commit -m "Deploy ${IMAGE_NAME} v${MAIN_TAG} - Build ${BUILD_NUMBER}"
                                     git push origin ${GITOPS_BRANCH}
-                                    
-                                    echo "GitOps repository updated successfully!"
+
+                                    echo "GitOps updated: ${MAIN_TAG}"
                                 """
                             }
                         }

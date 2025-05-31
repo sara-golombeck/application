@@ -136,10 +136,6 @@ stage('Set And Push Image Tag') {
                 //     string(credentialsId: 'git-email', variable: 'GIT_EMAIL')
                 // ]) {
                     sh """
-                        # Configure git identity for tagging
-                        git config user.email "${GIT_EMAIL}"
-                        git config user.name "${GIT_USERNAME}"
-                        
                         # Create and push tag
                         git tag -a ${MAIN_TAG} -m "Release ${MAIN_TAG}"
                         git push origin ${MAIN_TAG}

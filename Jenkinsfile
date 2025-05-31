@@ -120,7 +120,6 @@ stage('Set And Push Image Tag') {
     }
  }
 
-        
 stage('Push to ECR') {
     when {
         anyOf {

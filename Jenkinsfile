@@ -202,15 +202,15 @@ stage('Push to ECR') {
                                     git config user.name "${GIT_USERNAME}"
 
                                     # Update image tag and show changes
-                                    sed -i 's|tag:.*|tag: "${MAIN_TAG}"|g' ${HELM_VALUES_PATH}
+                                    sed -i 's|tag:.*|tag: "${env.MAIN_TAG}"|g' ${HELM_VALUES_PATH}
                                     git diff
 
                                     # Commit and push
                                     git add ${HELM_VALUES_PATH}
-                                    git commit -m "Deploy ${IMAGE_NAME} v${MAIN_TAG} - Build ${BUILD_NUMBER}"
+                                    git commit -m "Deploy ${IMAGE_NAME} v${env.MAIN_TAG} - Build ${BUILD_NUMBER}"
                                     git push origin ${GITOPS_BRANCH}
 
-                                    echo "GitOps updated: ${MAIN_TAG}"
+                                    echo "GitOps updated: ${env.MAIN_TAG}"
                                 """
                             }
                         }

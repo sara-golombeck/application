@@ -130,7 +130,7 @@ stage('Set And Push Image Tag') {
         script {
             def lastTag = sh(script: "git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0'", returnStdout: true).trim()
             def v = lastTag.tokenize('.')
-            MAIN_TAG = "${v[0]}.${v[1]}.${v[2].toInteger() + 1}"
+            env.MAIN_TAG = "${v[0]}.${v[1]}.${v[2].toInteger() + 1}"
             
             sshagent (credentials: ['github']) {
                 // withCredentials([
@@ -143,8 +143,8 @@ stage('Set And Push Image Tag') {
                         git config user.name "${GIT_USERNAME}"
                         
                         # Create and push tag
-                        git tag -a ${MAIN_TAG} -m "Release ${MAIN_TAG}"
-                        git push origin ${MAIN_TAG}
+                        git tag -a ${MAIN_TAG} -m "Release ${env.MAIN_TAG}"
+                        git push origin ${env.MAIN_TAG}
                     """
                 }
             }

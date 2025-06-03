@@ -15,8 +15,6 @@ pipeline {
         // Dynamic Variables
         MAIN_TAG = ''
         FAILURE_MSG = ''
-        GIT_EMAIL='sara.beck.dev@gmail.com'
-        GIT_USERNAME='sara'
     }
     
     triggers {
@@ -34,15 +32,15 @@ pipeline {
             }
         }
         
-// stage('Unit Tests') {
-//     steps {
-//         script {
-//             sh 'docker build --target test --build-arg ENVIRONMENT=test -t myapp-test .'
-//             sh 'docker run --rm myapp-test'
+stage('Unit Tests') {
+    steps {
+        script {
+            sh 'docker build --target test --build-arg ENVIRONMENT=test -t myapp-test .'
+            sh 'docker run --rm myapp-test'
 
-//         }
-//     }
-// }
+        }
+    }
+}
 
         
         stage('Build Docker Image') {
@@ -66,61 +64,40 @@ pipeline {
             }
         }
         
-        // stage('E2E Tests') {
-        //     when {
-        //         anyOf {
-        //             branch 'main'
-        //             branch 'develop'
-        //             branch 'feature/*'
-        //         }
-        //     }
-        //     steps {
-        //         script {
-        //             sh '''
-        //                 ls -la app/nginx/
-        //                 echo "Starting integration test environment..."
-        //                 docker compose up --build -d 
-        //                    chmod +x ./app/tests/e2e_tests/e2e_tests.sh
-        //                    ./app/tests/e2e_tests/e2e_tests.sh localhost || E2E_FAILED=true
-        //                    '''
-        //         }
-        //     }
-        //     post {
-        //         always {
-        //             echo "Starting cleanup..."
+        stage('E2E Tests') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'feature/*'
+                }
+            }
+            steps {
+                script {
+                    sh '''
+                        docker compose up --build -d 
+                           chmod +x ./app/tests/e2e_tests/e2e_tests.sh
+                           ./app/tests/e2e_tests/e2e_tests.sh localhost || E2E_FAILED=true
+                           '''
+                }
+            }
+            post {
+                always {
+                    echo "Starting cleanup..."
 
-        //             sh 'docker compose down || true'
-        //         }
-        //         success {
-        //             echo "Integration/E2E tests passed successfully"
-        //         }
-        //         failure {
-        //             script {
-        //                 FAILURE_MSG = "Integration/E2E tests failed"
-        //                 echo "Integration/E2E tests failed"
-        //             }
-        //         }
-        //     }
-        // }
+                    sh 'docker compose down || true'
+                }
+                success {
+                    echo "Integration/E2E tests passed successfully"
+                }
+                failure {
+                    script {
+                        FAILURE_MSG = "Integration/E2E tests failed"
+                        echo "Integration/E2E tests failed"
+                    }
+                }
+            }
+        }
         
-// stage('Set And Push Image Tag') {
-//     when { branch 'main' }
-//     steps {
-//         script {
-//             def lastTag = sh(script: "git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0'", returnStdout: true).trim()
-//             def v = lastTag.tokenize('.')
-//             MAIN_TAG = "${v[0]}.${v[1]}.${v[2].toInteger() + 1}"
-            
-//         sshagent (credentials: ['github'])
-//         {
-//             sh """
-//                     git tag -a ${MAIN_TAG} -m "Release ${MAIN_TAG}"
-//                     git push origin ${MAIN_TAG}
-//             """
-//         }
-//         }
-//     }
-//  }
 
 
 
@@ -133,10 +110,10 @@ stage('Set And Push Image Tag') {
             env.MAIN_TAG = "${v[0]}.${v[1]}.${v[2].toInteger() + 1}"
             
             sshagent (credentials: ['github']) {
-                // withCredentials([
-                //     string(credentialsId: 'git-username', variable: 'GIT_USERNAME'),
-                //     string(credentialsId: 'git-email', variable: 'GIT_EMAIL')
-                // ]) {
+                withCredentials([
+                    string(credentialsId: 'git-username', variable: 'GIT_USERNAME'),
+                    string(credentialsId: 'git-email', variable: 'GIT_EMAIL')
+                ]) {
                     sh """
                         # Configure git identity for tagging
                         git config user.email "${GIT_EMAIL}"
@@ -150,7 +127,7 @@ stage('Set And Push Image Tag') {
             }
         }
     }
-// }
+}
 
 stage('Push to ECR') {
     when {

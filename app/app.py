@@ -249,8 +249,11 @@ def before_request():
 
 @app.route('/', methods=['GET'])
 def get_landing():
-    app.logger.debug('Landing page accessed')
-    return jsonify({"service": "Playlists API", "version": "1.0"})
+    app.logger.debug('GET request received on landing endpoint')
+    return render_template('index.html')
+
+    # app.logger.debug('Landing page accessed')
+    # return jsonify({"service": "Playlists API", "version": "1.0"})
 
 @app.route('/playlists/<name>', methods=['POST'])
 def add_playlist(name):

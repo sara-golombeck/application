@@ -19,7 +19,7 @@ services:
     container_name: ${COMPOSE_PROJECT_NAME}_api
     restart: unless-stopped
     environment:
-      MONGODB_URI: "mongodb://${MONGO_APP_USERNAME}:${MONGO_APP_PASSWORD}@playlists_app_mongodb:27017/${MONGO_INITDB_DATABASE}?authSource=${MONGO_INITDB_DATABASE}"
+      MONGODB_URI: "mongodb://${MONGO_APP_USERNAME}:${MONGO_APP_PASSWORD}@playlists_app_mongodb:27017/${MONGO_INITDB_DATABASE}?authSource=playlists_db"
       FLASK_ENV: ${FLASK_ENV}
       LOG_LEVEL: ${LOG_LEVEL}
     depends_on:

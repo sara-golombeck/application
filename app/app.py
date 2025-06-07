@@ -303,10 +303,7 @@ def get_landing():
     app.logger.debug('GET request received on landing endpoint')
     return render_template('index.html')
 
-    # app.logger.debug('Landing page accessed')
-    # return jsonify({"service": "Playlists API", "version": "1.0"})
-
-@app.route('/playlists/<name>', methods=['POST'])
+@app.route('/playlists/<n>', methods=['POST'])
 def add_playlist(name):
     app.logger.info('Creating playlist', extra={'playlist_name': name, 'method': 'POST'})
     
@@ -315,16 +312,16 @@ def add_playlist(name):
         return jsonify(error="Request must contain valid JSON"), 400
     
     try:
-        # תיקון: השתמש ב-get_json במקום request.json
         playlist = request.get_json()
-        if playlist is None:  # JSON לא תקין
-            app.logger.warning('Invalid JSON format')
-            return jsonify(error="Invalid JSON format"), 400
-            
-        if not playlist:  # JSON ריק או False
-            app.logger.warning('Empty JSON data provided')
-            return jsonify(error="Empty JSON data"), 400
-            
+    except:
+        app.logger.warning('Invalid JSON format - parsing failed')
+        return jsonify(error="Invalid JSON format"), 400
+    
+    if playlist is None or not playlist:
+        app.logger.warning('Empty JSON data provided')
+        return jsonify(error="Empty JSON data"), 400
+    
+    try:
         playlist['name'] = name
         
         # Check if playlist already exists
@@ -352,7 +349,7 @@ def add_playlist(name):
         })
         return jsonify(error=f"Failed to create playlist: {str(e)}"), 500
 
-@app.route('/playlists/<name>', methods=['PUT'])
+@app.route('/playlists/<n>', methods=['PUT'])
 def update_playlist(name):
     app.logger.info('Updating playlist', extra={'playlist_name': name, 'method': 'PUT'})
     
@@ -361,16 +358,16 @@ def update_playlist(name):
         return jsonify(error="Request must contain valid JSON"), 400
     
     try:
-        # תיקון: השתמש ב-get_json במקום request.json
         playlist = request.get_json()
-        if playlist is None:  # JSON לא תקין
-            app.logger.warning('Invalid JSON format')
-            return jsonify(error="Invalid JSON format"), 400
-            
-        if not playlist:  # JSON ריק או False
-            app.logger.warning('Empty JSON data provided')
-            return jsonify(error="Empty JSON data"), 400
-            
+    except:
+        app.logger.warning('Invalid JSON format - parsing failed')
+        return jsonify(error="Invalid JSON format"), 400
+    
+    if playlist is None or not playlist:
+        app.logger.warning('Empty JSON data provided')
+        return jsonify(error="Empty JSON data"), 400
+    
+    try:
         # Don't allow changing the name
         playlist.pop('name', None)
         
@@ -392,7 +389,7 @@ def update_playlist(name):
         })
         return jsonify(error=f"Failed to update playlist: {str(e)}"), 500
 
-@app.route('/playlists/<name>', methods=['DELETE'])
+@app.route('/playlists/<n>', methods=['DELETE'])
 def delete_playlist(name):
     app.logger.info('Deleting playlist', extra={'playlist_name': name, 'method': 'DELETE'})
     
@@ -412,7 +409,7 @@ def delete_playlist(name):
         })
         return jsonify(error=f"Failed to delete playlist: {str(e)}"), 500
 
-@app.route('/playlists/<name>', methods=['GET'])
+@app.route('/playlists/<n>', methods=['GET'])
 def get_playlist(name):
     app.logger.info('Retrieving playlist', extra={'playlist_name': name, 'method': 'GET'})
     

@@ -12,6 +12,7 @@ pipeline {
         HELM_VALUES_PATH = 'charts/playlist-app/values.yaml'
         MAIN_TAG = ''
     }
+    
     triggers {
         githubPush()
     }
@@ -23,24 +24,24 @@ pipeline {
             }
         }
         
-stage('Unit Tests') {
-    steps {
-        script {
-            sh 'docker build --target test --build-arg ENVIRONMENT=test -t myapp-test .'
-            sh 'docker run --rm myapp-test'
-        }
-    }
-    post {
-        always {
-            sh 'docker rmi myapp-test || true'
-        }
-        failure {
-            script {
-                echo "Unit tests failed"
+        stage('Unit Tests') {
+            steps {
+                script {
+                    sh 'docker build --target test --build-arg ENVIRONMENT=test -t myapp-test .'
+                    sh 'docker run --rm myapp-test'
+                }
+            }
+            post {
+                always {
+                    sh 'docker rmi myapp-test || true'
+                }
+                failure {
+                    script {
+                        echo "Unit tests failed"
+                    }
+                }
             }
         }
-    }
-}
        
         stage('Package') {
             steps {
@@ -92,154 +93,159 @@ stage('Unit Tests') {
                 }
             }
         }
-        
 
-
-stage('Create Version Tag') {
-    when { branch 'main' }
-    steps {
-        script {
-            echo "Creating version tag..."
-            
-            def lastTag = sh(script: "git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0'", returnStdout: true).trim()
-            def v = lastTag.tokenize('.')
-            env.MAIN_TAG = "${v[0]}.${v[1]}.${v[2].toInteger() + 1}"
-            
-            def tagExists = sh(script: "git tag -l ${env.MAIN_TAG}", returnStdout: true).trim()
-            if (tagExists) {
-                error("Tag ${env.MAIN_TAG} already exists!")
+        stage('Create Version Tag') {
+            when { 
+                branch 'main' 
             }
-            
-            echo "Version tag ${env.MAIN_TAG} prepared successfully"
+            steps {
+                script {
+                    echo "Creating version tag..."
+                    
+                    def lastTag = sh(script: "git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0'", returnStdout: true).trim()
+                    def v = lastTag.tokenize('.')
+                    env.MAIN_TAG = "${v[0]}.${v[1]}.${v[2].toInteger() + 1}"
+                    
+                    def tagExists = sh(script: "git tag -l ${env.MAIN_TAG}", returnStdout: true).trim()
+                    if (tagExists) {
+                        error("Tag ${env.MAIN_TAG} already exists!")
+                    }
+                    
+                    echo "Version tag ${env.MAIN_TAG} prepared successfully"
+                }
+            }
         }
-    }
-}
 
-stage('Push to ECR') {
-when { 
-    allOf {
-        branch 'main'
-        expression { env.MAIN_TAG != '' }
-    }
-}    steps {
-        script {
-            sh """
-                aws ecr get-login-password --region ${AWS_REGION} | \
-                    docker login --username AWS --password-stdin ${ECR_URL}
-                
-                    docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${ECR_REPO}:${MAIN_TAG}
-                    docker push ${ECR_REPO}:${MAIN_TAG}
-                
-                    docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${ECR_REPO}:latest
-                    docker push ${ECR_REPO}:latest
-            """
-        }
-    }
-}
-stage('Push Tag') {
-    when { 
-        allOf {
-            branch 'main'
-            expression { env.MAIN_TAG != '' }
-        }
-    }
-    steps {
-        script {
-            echo "Pushing tag to repository..."
-            
-            sshagent(credentials: ['github']) {
-                withCredentials([
-                    string(credentialsId: 'git-username', variable: 'GIT_USERNAME'),
-                    string(credentialsId: 'git-email', variable: 'GIT_EMAIL')
-                ]) {
+        stage('Push to ECR') {
+            when { 
+                allOf {
+                    branch 'main'
+                    expression { env.MAIN_TAG != '' }
+                }
+            }
+            steps {
+                script {
                     sh """
-                        git config user.email "${GIT_EMAIL}"
-                        git config user.name "${GIT_USERNAME}"
+                        aws ecr get-login-password --region ${AWS_REGION} | \
+                            docker login --username AWS --password-stdin ${ECR_URL}
                         
-                        git tag -a ${env.MAIN_TAG} -m "Release ${env.MAIN_TAG}"
-                        git push origin ${env.MAIN_TAG}
+                        docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${ECR_REPO}:${MAIN_TAG}
+                        docker push ${ECR_REPO}:${MAIN_TAG}
+                        
+                        docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${ECR_REPO}:latest
+                        docker push ${ECR_REPO}:latest
                     """
                 }
             }
-            
-            echo "Tag ${env.MAIN_TAG} pushed successfully"
         }
-    }
-}
-stage('GitOps') {
-    when { branch 'main' }
-    steps {
-        script {
-            sshagent(['github']) {
-                sh '''
-                    rm -rf gitops-config
-                    echo "Cloning GitOps repository..."
-                    git clone ${GITOPS_REPO} gitops-config
-                '''
-                
-                withCredentials([
-                    string(credentialsId: 'git-username', variable: 'GIT_USERNAME'),
-                    string(credentialsId: 'git-email', variable: 'GIT_EMAIL')
-                ]) {
-                    dir('gitops-config') {
-                        sh """
-                            git config user.email "${GIT_EMAIL}"
-                            git config user.name "${GIT_USERNAME}"
 
-                            sed -i 's|tag: ".*"|tag: "${env.MAIN_TAG}"|g' ${HELM_VALUES_PATH}
-                            
-                            if git diff --quiet ${HELM_VALUES_PATH}; then
-                                echo "No changes to deploy - version ${env.MAIN_TAG} already deployed"
-                            else
-                                git add ${HELM_VALUES_PATH}
-                                git commit -m "Deploy ${IMAGE_NAME} v${env.MAIN_TAG} - Build ${BUILD_NUMBER}"
-                                git push origin ${GITOPS_BRANCH}
-                                echo "GitOps updated: ${env.MAIN_TAG}"
-                            fi
-                        """
+        stage('Push Tag') {
+            when { 
+                allOf {
+                    branch 'main'
+                    expression { env.MAIN_TAG != '' }
+                }
+            }
+            steps {
+                script {
+                    echo "Pushing tag to repository..."
+                    
+                    sshagent(credentials: ['github']) {
+                        withCredentials([
+                            string(credentialsId: 'git-username', variable: 'GIT_USERNAME'),
+                            string(credentialsId: 'git-email', variable: 'GIT_EMAIL')
+                        ]) {
+                            sh """
+                                git config user.email "${GIT_EMAIL}"
+                                git config user.name "${GIT_USERNAME}"
+                                
+                                git tag -a ${env.MAIN_TAG} -m "Release ${env.MAIN_TAG}"
+                                git push origin ${env.MAIN_TAG}
+                            """
+                        }
                     }
+                    
+                    echo "Tag ${env.MAIN_TAG} pushed successfully"
+                }
+            }
+        }
+
+        stage('GitOps') {
+            when { 
+                branch 'main' 
+            }
+            steps {
+                script {
+                    sshagent(['github']) {
+                        sh '''
+                            rm -rf gitops-config
+                            echo "Cloning GitOps repository..."
+                            git clone ${GITOPS_REPO} gitops-config
+                        '''
+                        
+                        withCredentials([
+                            string(credentialsId: 'git-username', variable: 'GIT_USERNAME'),
+                            string(credentialsId: 'git-email', variable: 'GIT_EMAIL')
+                        ]) {
+                            dir('gitops-config') {
+                                sh """
+                                    git config user.email "${GIT_EMAIL}"
+                                    git config user.name "${GIT_USERNAME}"
+
+                                    sed -i 's|tag: ".*"|tag: "${env.MAIN_TAG}"|g' ${HELM_VALUES_PATH}
+                                    
+                                    if git diff --quiet ${HELM_VALUES_PATH}; then
+                                        echo "No changes to deploy - version ${env.MAIN_TAG} already deployed"
+                                    else
+                                        git add ${HELM_VALUES_PATH}
+                                        git commit -m "Deploy ${IMAGE_NAME} v${env.MAIN_TAG} - Build ${BUILD_NUMBER}"
+                                        git push origin ${GITOPS_BRANCH}
+                                        echo "GitOps updated: ${env.MAIN_TAG}"
+                                    fi
+                                """
+                            }
+                        }
+                    }
+                }
+            }
+            post {
+                success {
+                    echo "GitOps deployment updated successfully"
+                }
+                failure {
+                    echo "GitOps deployment update failed"
                 }
             }
         }
     }
-    post {
-        success {
-            echo "GitOps deployment updated successfully"
-        }
-        failure {
-            echo "GitOps deployment update failed"
-        }
-    }
-}
-    }
 
     post {
-    always {
-        script {
-            def status = currentBuild.result ?: 'SUCCESS'
-            emailext (
-                subject: "${IMAGE_NAME} Pipeline ${status}",
-                body: "Build #${BUILD_NUMBER} | Branch: ${BRANCH_NAME} | Version: ${env.MAIN_TAG ?: 'N/A'}",
-                to: 'sara.beck.dev@gmail.com'
-            )
+        always {
+            script {
+                def status = currentBuild.result ?: 'SUCCESS'
+                emailext (
+                    subject: "${IMAGE_NAME} Pipeline ${status}",
+                    body: "Build #${BUILD_NUMBER} | Branch: ${BRANCH_NAME} | Version: ${env.MAIN_TAG ?: 'N/A'}",
+                    to: 'sara.beck.dev@gmail.com'
+                )
+            }
+            
+            sh '''
+                docker compose down -v || true
+                rm -rf gitops-config || true
+            '''
         }
         
-        sh '''
-            docker compose down -v || true
-            rm -rf gitops-config || true
-        '''
+        success {
+            echo "Pipeline completed successfully!"
+        }
+        
+        failure {
+            echo "Pipeline failed"
+        }
+        
+        cleanup {
+            deleteDir()
+        }
     }
-    
-    success {
-        echo "Pipeline completed successfully!"
-    }
-    
-    failure {
-        echo "Pipeline failed"
-    }
-    
-    cleanup {
-        deleteDir()
-    }
-}
 }

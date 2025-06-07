@@ -93,7 +93,7 @@ def test_invalid_json(client):
         content_type='application/json'
     )
     
-    assert response.status_code == 500
+    assert response.status_code == 400
 
 @patch('app.app.mongo')
 def test_health_check_healthy(mock_mongo, client):

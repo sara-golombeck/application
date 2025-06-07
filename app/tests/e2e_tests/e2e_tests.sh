@@ -1,14 +1,13 @@
 #!/bin/bash
 
 # E2E Tests for Playlists API - Only Working Tests
-# Professional test suite for CI/CD integration
 
 set -e
 
 # Configuration - Accept host as parameter or use default
 HOST=${1:-localhost}
 PORT=${2:-80}  # Default to port 80, but allow override
-BASE_URL="http://65.2.46.92"
+BASE_URL="http://13.202.188.253/"
 HEALTH_ENDPOINT="${BASE_URL}/health"
 API_ENDPOINT="${BASE_URL}/api/playlists"
 
@@ -247,10 +246,8 @@ main() {
     echo ""
     
     if [ $FAILED_TESTS -eq 0 ]; then
-        echo "✅ All tests passed!"
         exit 0
     else
-        echo "❌ $FAILED_TESTS test(s) failed"
         exit 1
     fi
 }

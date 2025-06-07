@@ -28,8 +28,6 @@ ENV FLASK_RUN_HOST=0.0.0.0
 
 # ---------- Stage 2: Test ----------
 FROM base AS test
-COPY ./tests ./tests
-
 CMD ["pytest", "tests/unit"]
 
 # ---------- Stage 3: Production ----------

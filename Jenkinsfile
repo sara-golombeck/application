@@ -261,7 +261,6 @@ pipeline {
     agent any
     
     environment {
-        // Application Configuration
         IMAGE_NAME = 'sara/playlists-app'
         ECR_URL = '793786247026.dkr.ecr.ap-south-1.amazonaws.com'
         ECR_REPO = "793786247026.dkr.ecr.ap-south-1.amazonaws.com/sara/playlists-app"
@@ -353,125 +352,74 @@ pipeline {
         //     }
         // }
 
-        // stage('Create Version Tag') {
-        //     when { 
-        //         branch 'main' 
-        //     }
-        //     steps {
-        //         script {
-        //             echo "Creating version tag..."
-                    
-        //             try {
-        //                 def lastTag = sh(script: "git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0'", returnStdout: true).trim()
-        //                 echo "Last tag: '${lastTag}'"
-
-        //                 // def v = lastTag.tokenize('.')
-        //                 // env.MAIN_TAG = "${v[0]}.${v[1]}.${v[2].toInteger() + 1}"
-        //                 def v = lastTag.tokenize('.')
-        //                 echo "v[0]=${v[0]}, v[1]=${v[1]}, v[2]=${v[2]}"
-        //                 def newPatch = v[2].toInteger() + 1
-        //                 echo "newPatch=${newPatch}"
-        //                 env.MAIN_TAG = "${v[0]}.${v[1]}.${newPatch}"
-        //                 echo "env.MAIN_TAG after assignment: ${env.MAIN_TAG}"
-                        
-        //                 if (!env.MAIN_TAG || env.MAIN_TAG == 'null') {
-        //                     env.MAIN_TAG = "0.0.1"
-        //                 }
-                        
-        //                 def tagExists = sh(script: "git tag -l ${env.MAIN_TAG}", returnStdout: true).trim()
-        //                 if (tagExists) {
-        //                     error("Tag ${env.MAIN_TAG} already exists!")
-        //                 }
-                        
-        //                 echo "Version tag ${env.MAIN_TAG} prepared successfully"
-                        
-        //             } catch (Exception e) {
-        //                 echo "Error in version tagging: ${e.getMessage()}"
-        //                 env.MAIN_TAG = "0.0.1"
-        //                 echo "Using fallback version: ${env.MAIN_TAG}"
-        //             }
-        //         }
-        //     }
-        // }
-stage('Create Version Tag') {
-   when { 
-       branch 'main' 
-   }
-   steps {
-       script {
-           echo "Creating version tag..."
-           
-           def lastTag = sh(script: "git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0'", returnStdout: true).trim()
-           echo "Last tag: '${lastTag}'"
-           
-           def v = lastTag.tokenize('.')
-           def newPatch = v[2].toInteger() + 1
-           
-           env.MAIN_TAG = v[0] + "." + v[1] + "." + newPatch
-           
-           echo "Generated tag: ${env.MAIN_TAG}"
-           
-           if (!env.MAIN_TAG || env.MAIN_TAG == 'null' || env.MAIN_TAG == '') {
-               env.MAIN_TAG = "0.0.1"
-               echo "Using fallback version: ${env.MAIN_TAG}"
-           }
-           
-           def tagExists = sh(script: "git tag -l '${env.MAIN_TAG}' | wc -l", returnStdout: true).trim()
-           if (tagExists.toInteger() > 0) {
-               error("Tag ${env.MAIN_TAG} already exists!")
-           }
-           
-           echo "Version tag ${env.MAIN_TAG} prepared successfully"
-       }
-   }
-}
-        stage('Push to ECR') {
+        stage('Create Version Tag') {
             when { 
-                allOf {
-                    branch 'main'
-                    // expression { env.MAIN_TAG != '' }
-                }
+                branch 'main' 
             }
             steps {
                 script {
-                    if (!env.MAIN_TAG || env.MAIN_TAG == '') {
+                    echo "Creating version tag..."
+                    
+                    def lastTag = sh(script: "git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0'", returnStdout: true).trim()
+                    echo "Last tag: '${lastTag}'"
+                    
+                    def v = lastTag.tokenize('.')
+                    def newPatch = v[2].toInteger() + 1
+                    
+                    MAIN_TAG = v[0] + "." + v[1] + "." + newPatch
+                    echo "Set MAIN_TAG to: ${MAIN_TAG}"
+                    
+                    def tagExists = sh(script: "git tag -l '${MAIN_TAG}' | wc -l", returnStdout: true).trim()
+                    if (tagExists.toInteger() > 0) {
+                        error("Tag ${MAIN_TAG} already exists!")
+                    }
+                    
+                    echo "Version tag ${MAIN_TAG} prepared successfully"
+                }
+            }
+        }
+
+        stage('Push to ECR') {
+            when { 
+                branch 'main'
+            }
+            steps {
+                script {
+                    if (!MAIN_TAG || MAIN_TAG == '') {
                         echo "WARNING: MAIN_TAG not set, skipping ECR push"
                         return
                     }
                     
-                    echo "Pushing ${env.MAIN_TAG} to ECR..."
+                    echo "Pushing ${MAIN_TAG} to ECR..."
                     
                     sh """
                         aws ecr get-login-password --region ${AWS_REGION} | \
                             docker login --username AWS --password-stdin ${ECR_URL}
                         
-                        docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${ECR_REPO}:${env.MAIN_TAG}
-                        docker push ${ECR_REPO}:${env.MAIN_TAG}
+                        docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${ECR_REPO}:${MAIN_TAG}
+                        docker push ${ECR_REPO}:${MAIN_TAG}
                         
                         docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${ECR_REPO}:latest
                         docker push ${ECR_REPO}:latest
                     """
                     
-                    echo "Successfully pushed ${env.MAIN_TAG} to ECR"
+                    echo "Successfully pushed ${MAIN_TAG} to ECR"
                 }
             }
         }
 
         stage('Push Tag') {
             when { 
-                allOf {
-                    branch 'main'
-                    // expression { env.MAIN_TAG != '' }
-                }
+                branch 'main'
             }
             steps {
                 script {
-                    if (!env.MAIN_TAG || env.MAIN_TAG == '') {
+                    if (!MAIN_TAG || MAIN_TAG == '') {
                         echo "WARNING: MAIN_TAG not set, skipping git tag"
                         return
                     }
                     
-                    echo "Pushing tag ${env.MAIN_TAG} to repository..."
+                    echo "Pushing tag ${MAIN_TAG} to repository..."
                     
                     sshagent(credentials: ['github']) {
                         withCredentials([
@@ -482,13 +430,13 @@ stage('Create Version Tag') {
                                 git config user.email "${GIT_EMAIL}"
                                 git config user.name "${GIT_USERNAME}"
                                 
-                                git tag -a ${env.MAIN_TAG} -m "Release ${env.MAIN_TAG}"
-                                git push origin ${env.MAIN_TAG}
+                                git tag -a ${MAIN_TAG} -m "Release ${MAIN_TAG}"
+                                git push origin ${MAIN_TAG}
                             """
                         }
                     }
                     
-                    echo "Tag ${env.MAIN_TAG} pushed successfully"
+                    echo "Tag ${MAIN_TAG} pushed successfully"
                 }
             }
         }
@@ -499,7 +447,7 @@ stage('Create Version Tag') {
             }
             steps {
                 script {
-                    if (!env.MAIN_TAG || env.MAIN_TAG == '') {
+                    if (!MAIN_TAG || MAIN_TAG == '') {
                         echo "WARNING: MAIN_TAG not set, skipping GitOps update"
                         return
                     }
@@ -520,15 +468,15 @@ stage('Create Version Tag') {
                                     git config user.email "${GIT_EMAIL}"
                                     git config user.name "${GIT_USERNAME}"
 
-                                    sed -i 's|tag: ".*"|tag: "${env.MAIN_TAG}"|g' ${HELM_VALUES_PATH}
+                                    sed -i 's|tag: ".*"|tag: "${MAIN_TAG}"|g' ${HELM_VALUES_PATH}
                                     
                                     if git diff --quiet ${HELM_VALUES_PATH}; then
-                                        echo "No changes to deploy - version ${env.MAIN_TAG} already deployed"
+                                        echo "No changes to deploy - version ${MAIN_TAG} already deployed"
                                     else
                                         git add ${HELM_VALUES_PATH}
-                                        git commit -m "Deploy ${IMAGE_NAME} v${env.MAIN_TAG} - Build ${BUILD_NUMBER}"
+                                        git commit -m "Deploy ${IMAGE_NAME} v${MAIN_TAG} - Build ${BUILD_NUMBER}"
                                         git push origin ${GITOPS_BRANCH}
-                                        echo "GitOps updated: ${env.MAIN_TAG}"
+                                        echo "GitOps updated: ${MAIN_TAG}"
                                     fi
                                 """
                             }
@@ -553,7 +501,7 @@ stage('Create Version Tag') {
                 def status = currentBuild.result ?: 'SUCCESS'
                 emailext (
                     subject: "${IMAGE_NAME} Pipeline ${status}",
-                    body: "Build #${BUILD_NUMBER} | Branch: ${BRANCH_NAME} | Version: ${env.MAIN_TAG ?: 'N/A'}",
+                    body: "Build #${BUILD_NUMBER} | Branch: ${BRANCH_NAME} | Version: ${MAIN_TAG ?: 'N/A'}",
                     to: 'sara.beck.dev@gmail.com'
                 )
             }

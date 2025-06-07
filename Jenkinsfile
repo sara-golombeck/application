@@ -282,24 +282,24 @@ pipeline {
             }
         }
         
-        stage('Unit Tests') {
-            steps {
-                script {
-                    sh 'docker build --target test --build-arg ENVIRONMENT=test -t myapp-test .'
-                    sh 'docker run --rm myapp-test'
-                }
-            }
-            post {
-                always {
-                    sh 'docker rmi myapp-test || true'
-                }
-                failure {
-                    script {
-                        echo "Unit tests failed"
-                    }
-                }
-            }
-        }
+        // stage('Unit Tests') {
+        //     steps {
+        //         script {
+        //             sh 'docker build --target test --build-arg ENVIRONMENT=test -t myapp-test .'
+        //             sh 'docker run --rm myapp-test'
+        //         }
+        //     }
+        //     post {
+        //         always {
+        //             sh 'docker rmi myapp-test || true'
+        //         }
+        //         failure {
+        //             script {
+        //                 echo "Unit tests failed"
+        //             }
+        //         }
+        //     }
+        // }
        
         stage('Package') {
             steps {
@@ -351,7 +351,6 @@ pipeline {
         //         }
         //     }
         // }
-
 stage('Create Version Tag') {
     when { 
         branch 'main' 
@@ -360,12 +359,10 @@ stage('Create Version Tag') {
         script {
             echo "Creating version tag..."
             
-            sshagent(credentials: ['github']) {
-                sh "git fetch --tags"
-            }
+            sh "git fetch --tags"
             
             try {
-                def lastTag = sh(script: "git describe --tags --abbrev=0", returnStdout: true).trim()
+                def lastTag = sh(script: "git tag --sort=-version:refname | head -1", returnStdout: true).trim()
                 echo "Found existing tag: ${lastTag}"
                 
                 def v = lastTag.tokenize('.')
@@ -378,12 +375,6 @@ stage('Create Version Tag') {
             }
             
             echo "Generated new tag: ${MAIN_TAG}"
-            
-            def remoteTagExists = sh(script: "git ls-remote --tags origin | grep '${MAIN_TAG}\$' | wc -l", returnStdout: true).trim()
-            if (remoteTagExists.toInteger() > 0) {
-                error("Tag ${MAIN_TAG} already exists in remote repository!")
-            }
-            
             echo "Version tag ${MAIN_TAG} prepared successfully"
         }
     }

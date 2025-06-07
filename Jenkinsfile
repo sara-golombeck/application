@@ -352,33 +352,42 @@ pipeline {
         //     }
         // }
 
-        stage('Create Version Tag') {
-            when { 
-                branch 'main' 
+stage('Create Version Tag') {
+    when { 
+        branch 'main' 
+    }
+    steps {
+        script {
+            echo "Creating version tag..."
+            
+            sshagent(credentials: ['github']) {
+                sh "git fetch --tags"
             }
-            steps {
-                script {
-                    echo "Creating version tag..."
-                    
-                    def lastTag = sh(script: "git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0'", returnStdout: true).trim()
-                    echo "Last tag: '${lastTag}'"
-                    
-                    def v = lastTag.tokenize('.')
-                    def newPatch = v[2].toInteger() + 1
-                    
-                    MAIN_TAG = v[0] + "." + v[1] + "." + newPatch
-                    echo "Set MAIN_TAG to: ${MAIN_TAG}"
-                    
-                    def tagExists = sh(script: "git tag -l '${MAIN_TAG}' | wc -l", returnStdout: true).trim()
-                    if (tagExists.toInteger() > 0) {
-                        error("Tag ${MAIN_TAG} already exists!")
-                    }
-                    
-                    echo "Version tag ${MAIN_TAG} prepared successfully"
-                }
+            
+            try {
+                def lastTag = sh(script: "git describe --tags --abbrev=0", returnStdout: true).trim()
+                echo "Found existing tag: ${lastTag}"
+                
+                def v = lastTag.tokenize('.')
+                def newPatch = v[2].toInteger() + 1
+                MAIN_TAG = v[0] + "." + v[1] + "." + newPatch
+                
+            } catch (Exception e) {
+                echo "No existing tags found, starting from 0.0.1"
+                MAIN_TAG = "0.0.1"
             }
+            
+            echo "Generated new tag: ${MAIN_TAG}"
+            
+            def remoteTagExists = sh(script: "git ls-remote --tags origin | grep '${MAIN_TAG}\$' | wc -l", returnStdout: true).trim()
+            if (remoteTagExists.toInteger() > 0) {
+                error("Tag ${MAIN_TAG} already exists in remote repository!")
+            }
+            
+            echo "Version tag ${MAIN_TAG} prepared successfully"
         }
-
+    }
+}
         stage('Push to ECR') {
             when { 
                 branch 'main'

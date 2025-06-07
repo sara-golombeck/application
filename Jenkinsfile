@@ -27,7 +27,7 @@ pipeline {
         stage('Unit Tests') {
             steps {
                 script {
-d                   sh 'docker build --no-cache --target test --build-arg ENVIRONMENT=test -t myapp-test .'
+                    sh 'docker build --target test --build-arg ENVIRONMENT=test -t myapp-test .'
                     sh 'docker run --rm myapp-test'
                 }
             }

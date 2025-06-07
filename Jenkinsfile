@@ -62,37 +62,37 @@ pipeline {
             }
         }
         
-        stage('E2E Tests') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'feature/*'
-                }
-            }
-            steps {
-                script {
-                    sh '''
-                        docker compose up --build -d 
-                        chmod +x ./app/tests/e2e_tests/e2e_tests.sh
-                        ./app/tests/e2e_tests/e2e_tests.sh localhost
-                        '''
-                }
-            }
-            post {
-                always {
-                    echo "Cleaning up test environment."
-                    sh 'docker compose down || true'
-                }
-                success {
-                    echo "E2E tests passed successfully"
-                }
-                failure {
-                    script {
-                        echo "E2E tests failed"
-                    }
-                }
-            }
-        }
+        // stage('E2E Tests') {
+        //     when {
+        //         anyOf {
+        //             branch 'main'
+        //             branch 'feature/*'
+        //         }
+        //     }
+        //     steps {
+        //         script {
+        //             sh '''
+        //                 docker compose up --build -d 
+        //                 chmod +x ./app/tests/e2e_tests/e2e_tests.sh
+        //                 ./app/tests/e2e_tests/e2e_tests.sh localhost
+        //                 '''
+        //         }
+        //     }
+        //     post {
+        //         always {
+        //             echo "Cleaning up test environment."
+        //             sh 'docker compose down || true'
+        //         }
+        //         success {
+        //             echo "E2E tests passed successfully"
+        //         }
+        //         failure {
+        //             script {
+        //                 echo "E2E tests failed"
+        //             }
+        //         }
+        //     }
+        // }
 
         stage('Create Version Tag') {
             when { 

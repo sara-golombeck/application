@@ -363,6 +363,8 @@ pipeline {
                     
                     try {
                         def lastTag = sh(script: "git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0'", returnStdout: true).trim()
+                        echo "Last tag: '${lastTag}'"
+
                         def v = lastTag.tokenize('.')
                         env.MAIN_TAG = "${v[0]}.${v[1]}.${v[2].toInteger() + 1}"
                         

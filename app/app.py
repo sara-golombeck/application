@@ -303,7 +303,7 @@ def get_landing():
     app.logger.debug('GET request received on landing endpoint')
     return render_template('index.html')
 
-@app.route('/playlists/<n>', methods=['POST'])
+@app.route('/playlists/<name>', methods=['POST'])
 def add_playlist(name):
     app.logger.info('Creating playlist', extra={'playlist_name': name, 'method': 'POST'})
     
@@ -349,7 +349,7 @@ def add_playlist(name):
         })
         return jsonify(error=f"Failed to create playlist: {str(e)}"), 500
 
-@app.route('/playlists/<n>', methods=['PUT'])
+@app.route('/playlists/<name>', methods=['PUT'])
 def update_playlist(name):
     app.logger.info('Updating playlist', extra={'playlist_name': name, 'method': 'PUT'})
     
@@ -389,7 +389,7 @@ def update_playlist(name):
         })
         return jsonify(error=f"Failed to update playlist: {str(e)}"), 500
 
-@app.route('/playlists/<n>', methods=['DELETE'])
+@app.route('/playlists/<name>', methods=['DELETE'])
 def delete_playlist(name):
     app.logger.info('Deleting playlist', extra={'playlist_name': name, 'method': 'DELETE'})
     
@@ -409,7 +409,7 @@ def delete_playlist(name):
         })
         return jsonify(error=f"Failed to delete playlist: {str(e)}"), 500
 
-@app.route('/playlists/<n>', methods=['GET'])
+@app.route('/playlists/<name>', methods=['GET'])
 def get_playlist(name):
     app.logger.info('Retrieving playlist', extra={'playlist_name': name, 'method': 'GET'})
     

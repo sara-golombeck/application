@@ -359,22 +359,25 @@ stage('Create Version Tag') {
         script {
             echo "Creating version tag..."
             
-            sh "git fetch --tags"
-            
-            try {
-                def lastTag = sh(script: "git tag --sort=-version:refname | head -1", returnStdout: true).trim()
-                echo "Found existing tag: ${lastTag}"
+            sshagent(credentials: ['github']) {
+                sh "git fetch --tags"
                 
-                def v = lastTag.tokenize('.')
-                def newPatch = v[2].toInteger() + 1
-                MAIN_TAG = v[0] + "." + v[1] + "." + newPatch
+                try {
+                    def lastTag = sh(script: "git tag --sort=-version:refname | head -1", returnStdout: true).trim()
+                    echo "Found existing tag: ${lastTag}"
+                    
+                    def v = lastTag.tokenize('.')
+                    def newPatch = v[2].toInteger() + 1
+                    MAIN_TAG = v[0] + "." + v[1] + "." + newPatch
+                    
+                } catch (Exception e) {
+                    echo "No existing tags found, starting from 0.0.1"
+                    MAIN_TAG = "0.0.1"
+                }
                 
-            } catch (Exception e) {
-                echo "No existing tags found, starting from 0.0.1"
-                MAIN_TAG = "0.0.1"
+                echo "Generated new tag: ${MAIN_TAG}"
             }
             
-            echo "Generated new tag: ${MAIN_TAG}"
             echo "Version tag ${MAIN_TAG} prepared successfully"
         }
     }

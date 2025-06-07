@@ -353,47 +353,78 @@ pipeline {
         //     }
         // }
 
-        stage('Create Version Tag') {
-            when { 
-                branch 'main' 
-            }
-            steps {
-                script {
-                    echo "Creating version tag..."
+        // stage('Create Version Tag') {
+        //     when { 
+        //         branch 'main' 
+        //     }
+        //     steps {
+        //         script {
+        //             echo "Creating version tag..."
                     
-                    try {
-                        def lastTag = sh(script: "git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0'", returnStdout: true).trim()
-                        echo "Last tag: '${lastTag}'"
+        //             try {
+        //                 def lastTag = sh(script: "git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0'", returnStdout: true).trim()
+        //                 echo "Last tag: '${lastTag}'"
 
-                        // def v = lastTag.tokenize('.')
-                        // env.MAIN_TAG = "${v[0]}.${v[1]}.${v[2].toInteger() + 1}"
-                        def v = lastTag.tokenize('.')
-                        echo "v[0]=${v[0]}, v[1]=${v[1]}, v[2]=${v[2]}"
-                        def newPatch = v[2].toInteger() + 1
-                        echo "newPatch=${newPatch}"
-                        env.MAIN_TAG = "${v[0]}.${v[1]}.${newPatch}"
-                        echo "env.MAIN_TAG after assignment: ${env.MAIN_TAG}"
+        //                 // def v = lastTag.tokenize('.')
+        //                 // env.MAIN_TAG = "${v[0]}.${v[1]}.${v[2].toInteger() + 1}"
+        //                 def v = lastTag.tokenize('.')
+        //                 echo "v[0]=${v[0]}, v[1]=${v[1]}, v[2]=${v[2]}"
+        //                 def newPatch = v[2].toInteger() + 1
+        //                 echo "newPatch=${newPatch}"
+        //                 env.MAIN_TAG = "${v[0]}.${v[1]}.${newPatch}"
+        //                 echo "env.MAIN_TAG after assignment: ${env.MAIN_TAG}"
                         
-                        if (!env.MAIN_TAG || env.MAIN_TAG == 'null') {
-                            env.MAIN_TAG = "0.0.1"
-                        }
+        //                 if (!env.MAIN_TAG || env.MAIN_TAG == 'null') {
+        //                     env.MAIN_TAG = "0.0.1"
+        //                 }
                         
-                        def tagExists = sh(script: "git tag -l ${env.MAIN_TAG}", returnStdout: true).trim()
-                        if (tagExists) {
-                            error("Tag ${env.MAIN_TAG} already exists!")
-                        }
+        //                 def tagExists = sh(script: "git tag -l ${env.MAIN_TAG}", returnStdout: true).trim()
+        //                 if (tagExists) {
+        //                     error("Tag ${env.MAIN_TAG} already exists!")
+        //                 }
                         
-                        echo "Version tag ${env.MAIN_TAG} prepared successfully"
+        //                 echo "Version tag ${env.MAIN_TAG} prepared successfully"
                         
-                    } catch (Exception e) {
-                        echo "Error in version tagging: ${e.getMessage()}"
-                        env.MAIN_TAG = "0.0.1"
-                        echo "Using fallback version: ${env.MAIN_TAG}"
-                    }
-                }
-            }
-        }
-
+        //             } catch (Exception e) {
+        //                 echo "Error in version tagging: ${e.getMessage()}"
+        //                 env.MAIN_TAG = "0.0.1"
+        //                 echo "Using fallback version: ${env.MAIN_TAG}"
+        //             }
+        //         }
+        //     }
+        // }
+stage('Create Version Tag') {
+   when { 
+       branch 'main' 
+   }
+   steps {
+       script {
+           echo "Creating version tag..."
+           
+           def lastTag = sh(script: "git describe --tags --abbrev=0 2>/dev/null || echo '0.0.0'", returnStdout: true).trim()
+           echo "Last tag: '${lastTag}'"
+           
+           def v = lastTag.tokenize('.')
+           def newPatch = v[2].toInteger() + 1
+           
+           env.MAIN_TAG = v[0] + "." + v[1] + "." + newPatch
+           
+           echo "Generated tag: ${env.MAIN_TAG}"
+           
+           if (!env.MAIN_TAG || env.MAIN_TAG == 'null' || env.MAIN_TAG == '') {
+               env.MAIN_TAG = "0.0.1"
+               echo "Using fallback version: ${env.MAIN_TAG}"
+           }
+           
+           def tagExists = sh(script: "git tag -l '${env.MAIN_TAG}' | wc -l", returnStdout: true).trim()
+           if (tagExists.toInteger() > 0) {
+               error("Tag ${env.MAIN_TAG} already exists!")
+           }
+           
+           echo "Version tag ${env.MAIN_TAG} prepared successfully"
+       }
+   }
+}
         stage('Push to ECR') {
             when { 
                 allOf {

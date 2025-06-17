@@ -1,17 +1,15 @@
 #!/bin/bash
 
-# E2E Tests for Playlists API - Only Working Tests
+# E2E Tests for Playlists API - Clean & Minimal
 
 set -e
 
-# Configuration - Accept host as parameter or use default
-HOST=${1:-localhost}
-PORT=${2:-80}  # Default to port 80, but allow override
-BASE_URL="http://13.202.188.253/"
+# Configuration - Accept URL as parameter
+BASE_URL=${1:-"http://localhost:5000"}
 HEALTH_ENDPOINT="${BASE_URL}/health"
-API_ENDPOINT="${BASE_URL}/api/playlists"
+API_ENDPOINT="${BASE_URL}/playlists"
 
-# Test results
+# Test counters
 TOTAL_TESTS=0
 PASSED_TESTS=0
 FAILED_TESTS=0
@@ -36,207 +34,210 @@ log_info() {
     echo "INFO: $1"
 }
 
-# Wait for service to be available
+# Wait for service (simplified)
 wait_for_service() {
-    log_info "Waiting for service to be ready..."
+    log_info "Waiting for service at $BASE_URL"
     
-    for i in {1..30}; do
+    for i in {1..10}; do
         if curl -s -f "$HEALTH_ENDPOINT" >/dev/null 2>&1; then
-            log_pass "Service is ready after ${i} attempts"
+            log_pass "Service ready after ${i} attempts"
             return 0
         fi
-        echo "Waiting... attempt $i/30"
+        echo "Attempt $i/10..."
         sleep 2
     done
     
-    log_fail "Service did not become ready within timeout"
+    log_fail "Service not ready within timeout"
     return 1
 }
 
 # Test 1: Health Check
-test_health_check() {
+test_health() {
     log_test "Health Check"
     
-    local response=$(curl -s -w "\n%{http_code}" "$HEALTH_ENDPOINT" || echo -e "\n000")
+    local response=$(curl -s -w "\n%{http_code}" "$HEALTH_ENDPOINT" 2>/dev/null || echo -e "\n000")
     local status_code=$(echo "$response" | tail -n1)
     
     if [ "$status_code" = "200" ]; then
-        log_pass "Health check endpoint returns 200"
+        log_pass "Health endpoint responds with 200"
     else
         log_fail "Health check failed with status: $status_code"
         return 1
     fi
 }
 
-# Test 2: API Landing Page
-test_landing_page() {
-    log_test "API Landing Page"
+# Test 2: Landing Page
+test_landing() {
+    log_test "Landing Page"
     
-    local response=$(curl -s -w "\n%{http_code}" "$BASE_URL/" || echo -e "\n000")
+    local response=$(curl -s -w "\n%{http_code}" "$BASE_URL/" 2>/dev/null || echo -e "\n000")
     local status_code=$(echo "$response" | tail -n1)
     
     if [ "$status_code" = "200" ]; then
-        log_pass "Landing page returns 200"
+        log_pass "Landing page accessible"
     else
         log_fail "Landing page failed with status: $status_code"
         return 1
     fi
 }
 
-# Test 3: List All Playlists
+# Test 3: List Playlists
 test_list_playlists() {
     log_test "List All Playlists"
     
-    local response=$(curl -s -w "\n%{http_code}" "$API_ENDPOINT" || echo -e "\n000")
+    local response=$(curl -s -w "\n%{http_code}" "$API_ENDPOINT" 2>/dev/null || echo -e "\n000")
     local status_code=$(echo "$response" | tail -n1)
+    local body=$(echo "$response" | head -n -1)
     
-    if [ "$status_code" = "200" ]; then
-        local body=$(echo "$response" | head -n -1)
-        if echo "$body" | grep -q '"playlists"'; then
-            log_pass "Playlists list retrieved successfully"
-        else
-            log_fail "Playlists response missing expected structure"
-            return 1
-        fi
+    if [ "$status_code" = "200" ] && echo "$body" | grep -q '"playlists"'; then
+        log_pass "Playlists list retrieved successfully"
     else
-        log_fail "List playlists failed with status: $status_code"
+        log_fail "List playlists failed (status: $status_code)"
         return 1
     fi
 }
 
-# Test 4: Get Existing Playlist (if any exists)
-test_get_existing_playlist() {
-    log_test "Get Existing Playlist"
+# Test 4: Create & Delete Playlist
+test_create_delete_playlist() {
+    log_test "Create & Delete Playlist"
     
-    # First get the list of playlists to find one to test with
-    local list_response=$(curl -s "$API_ENDPOINT" || echo '{"playlists":[]}')
-    local playlist_count=$(echo "$list_response" | grep -o '"name"' | wc -l)
+    local playlist_name="e2e-test-$(date +%s)"
+    local payload='{"songs": ["Test Song"], "genre": "test"}'
     
-    if [ "$playlist_count" -gt 0 ]; then
-        # Extract first playlist name
-        local playlist_name=$(echo "$list_response" | grep -o '"name":"[^"]*"' | head -n1 | cut -d'"' -f4)
+    # Create playlist
+    local create_response=$(curl -s -w "\n%{http_code}" \
+        -H "Content-Type: application/json" \
+        -d "$payload" \
+        -X POST "$API_ENDPOINT/$playlist_name" 2>/dev/null || echo -e "\n000")
+    
+    local create_status=$(echo "$create_response" | tail -n1)
+    
+    if [ "$create_status" = "201" ]; then
+        log_info "Playlist created successfully"
         
-        if [ -n "$playlist_name" ]; then
-            local response=$(curl -s -w "\n%{http_code}" "$API_ENDPOINT/$playlist_name" || echo -e "\n000")
-            local status_code=$(echo "$response" | tail -n1)
+        # Get the created playlist
+        local get_response=$(curl -s -w "\n%{http_code}" "$API_ENDPOINT/$playlist_name" 2>/dev/null || echo -e "\n000")
+        local get_status=$(echo "$get_response" | tail -n1)
+        
+        if [ "$get_status" = "200" ]; then
+            log_info "Playlist retrieved successfully"
             
-            if [ "$status_code" = "200" ]; then
-                local body=$(echo "$response" | head -n -1)
-                if echo "$body" | grep -q '"songs"'; then
-                    log_pass "Existing playlist retrieved with correct structure"
-                else
-                    log_fail "Playlist response missing expected fields"
-                    return 1
-                fi
+            # Delete the playlist
+            local delete_response=$(curl -s -w "\n%{http_code}" -X DELETE "$API_ENDPOINT/$playlist_name" 2>/dev/null || echo -e "\n000")
+            local delete_status=$(echo "$delete_response" | tail -n1)
+            
+            if [ "$delete_status" = "200" ]; then
+                log_pass "Full CRUD cycle completed"
             else
-                log_fail "Get existing playlist failed with status: $status_code"
+                log_fail "Delete failed with status: $delete_status"
                 return 1
             fi
         else
-            log_info "No playlist name found to test with"
-            log_pass "Skipping individual playlist test (no playlists available)"
+            log_fail "Get playlist failed with status: $get_status"
+            # Cleanup attempt
+            curl -s -X DELETE "$API_ENDPOINT/$playlist_name" >/dev/null 2>&1 || true
+            return 1
         fi
     else
-        log_info "No playlists found in database"
-        log_pass "Skipping individual playlist test (no playlists available)"
-    fi
-}
-
-# Test 5: API Response Format Validation
-test_api_response_format() {
-    log_test "API Response Format Validation"
-    
-    local response=$(curl -s "$API_ENDPOINT" || echo '{}')
-    
-    # Check if response is valid JSON
-    if echo "$response" | python3 -m json.tool >/dev/null 2>&1; then
-        log_pass "API returns valid JSON format"
-    else
-        log_fail "API response is not valid JSON"
+        log_fail "Create playlist failed with status: $create_status"
         return 1
     fi
 }
 
-# Test 6: Create Playlist (Safe Version)
-test_create_playlist_safe() {
-    log_test "Create Playlist (Safe)"
+# Test 5: Update Playlist
+test_update_playlist() {
+    log_test "Update Playlist"
     
-    # Generate unique playlist name with timestamp and random number
-    local timestamp=$(date +%s)
-    local random=$(shuf -i 1000-9999 -n 1 2>/dev/null || echo $RANDOM)
-    local playlist_name="e2e-test-${timestamp}-${random}"
+    local playlist_name="e2e-update-$(date +%s)"
+    local initial_payload='{"songs": ["Original Song"], "genre": "rock"}'
+    local update_payload='{"songs": ["Updated Song"], "genre": "pop"}'
     
-    # First, try to delete if exists (ignore errors)
-    curl -s -X DELETE "$API_ENDPOINT/$playlist_name" >/dev/null 2>&1 || true
-    
-    local payload='{"songs": ["Test Song 1", "Test Song 2"], "genre": "test"}'
-    
-    local response=$(curl -s -w "\n%{http_code}" \
+    # Create playlist
+    local create_response=$(curl -s -w "\n%{http_code}" \
         -H "Content-Type: application/json" \
-        -d "$payload" \
-        -X POST "$API_ENDPOINT/$playlist_name" || echo -e "\n000")
+        -d "$initial_payload" \
+        -X POST "$API_ENDPOINT/$playlist_name" 2>/dev/null || echo -e "\n000")
     
-    local status_code=$(echo "$response" | tail -n1)
+    local create_status=$(echo "$create_response" | tail -n1)
     
-    if [ "$status_code" = "201" ]; then
-        log_pass "Playlist created successfully"
-        echo "$playlist_name" > /tmp/e2e_playlist_name_safe
+    if [ "$create_status" = "201" ]; then
+        # Update playlist
+        local update_response=$(curl -s -w "\n%{http_code}" \
+            -H "Content-Type: application/json" \
+            -d "$update_payload" \
+            -X PUT "$API_ENDPOINT/$playlist_name" 2>/dev/null || echo -e "\n000")
         
-        # Clean up immediately to avoid conflicts
+        local update_status=$(echo "$update_response" | tail -n1)
+        
+        if [ "$update_status" = "200" ]; then
+            log_pass "Playlist updated successfully"
+        else
+            log_fail "Update failed with status: $update_status"
+        fi
+        
+        # Cleanup
         curl -s -X DELETE "$API_ENDPOINT/$playlist_name" >/dev/null 2>&1 || true
-        rm -f /tmp/e2e_playlist_name_safe
-    elif [ "$status_code" = "409" ]; then
-        log_info "Playlist exists (409), but POST endpoint is working"
-        log_pass "POST endpoint functional (conflict handled properly)"
     else
-        log_fail "Create playlist failed with status: $status_code"
-        echo "Response: $(echo "$response" | head -n -1)"
+        log_fail "Could not create playlist for update test"
         return 1
     fi
 }
 
-# Test 7: Service Availability
-test_service_availability() {
-    log_test "Service Availability"
+# Test 6: Error Cases
+test_error_cases() {
+    log_test "Error Handling"
     
-    local start_time=$(date +%s)
-    local response=$(curl -s -w "%{time_total}" "$HEALTH_ENDPOINT" || echo "999")
-    local end_time=$(date +%s)
-    local response_time=$(echo "$response" | tail -n1)
+    # Test 404 - Get non-existent playlist
+    local not_found_response=$(curl -s -w "\n%{http_code}" "$API_ENDPOINT/non-existent-playlist" 2>/dev/null || echo -e "\n000")
+    local not_found_status=$(echo "$not_found_response" | tail -n1)
     
-    # Check if response time is reasonable (less than 5 seconds)
-    if (( $(echo "$response_time < 5.0" | bc -l) )); then
-        log_pass "Service responds within acceptable time (${response_time}s)"
+    if [ "$not_found_status" = "404" ]; then
+        log_info "404 for non-existent playlist - OK"
     else
-        log_fail "Service response time too slow: ${response_time}s"
+        log_fail "Expected 404, got: $not_found_status"
+        return 1
+    fi
+    
+    # Test 400 - Invalid JSON
+    local bad_json_response=$(curl -s -w "\n%{http_code}" \
+        -H "Content-Type: application/json" \
+        -d "invalid json" \
+        -X POST "$API_ENDPOINT/test-bad-json" 2>/dev/null || echo -e "\n000")
+    
+    local bad_json_status=$(echo "$bad_json_response" | tail -n1)
+    
+    if [ "$bad_json_status" = "400" ]; then
+        log_pass "Error handling works correctly"
+    else
+        log_fail "Expected 400 for bad JSON, got: $bad_json_status"
         return 1
     fi
 }
 
 # Main execution
 main() {
-    echo "Playlists API E2E Tests - Working Tests Only"
-    echo "============================================="
+    echo "Playlists API E2E Tests"
+    echo "======================="
+    echo "Testing: $BASE_URL"
     echo ""
     
-    # Wait for service to be ready
+    # Wait for service
     if ! wait_for_service; then
-        echo "Service readiness check failed!"
+        echo "Service not available!"
         exit 1
     fi
     
     echo ""
     
-    # Run only working tests
-    test_health_check || true
-    test_landing_page || true
+    # Run tests
+    test_health || true
+    test_landing || true
     test_list_playlists || true
-    test_get_existing_playlist || true
-    test_api_response_format || true
-    test_create_playlist_safe || true
-    test_service_availability || true
+    test_create_delete_playlist || true
+    test_update_playlist || true
+    test_error_cases || true
     
-    # Results summary
+    # Results
     echo ""
     echo "Test Results"
     echo "============"
@@ -246,21 +247,19 @@ main() {
     echo ""
     
     if [ $FAILED_TESTS -eq 0 ]; then
+        echo "All tests passed!"
         exit 0
     else
+        echo "Some tests failed!"
         exit 1
     fi
 }
 
-# Check dependencies
+# Dependency check
 if ! command -v curl >/dev/null 2>&1; then
-    echo "ERROR: curl is required but not installed"
+    echo "ERROR: curl is required"
     exit 1
 fi
 
-if ! command -v bc >/dev/null 2>&1; then
-    echo "WARNING: bc not found, skipping response time test"
-fi
-
-# Run main function
-main "$@"
+# Run with URL parameter
+main
